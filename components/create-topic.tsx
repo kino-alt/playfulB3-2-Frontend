@@ -97,6 +97,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
               onChange={setEmojiInput}
               inputtitle="Select"
               placeholder=""
+              maxLength={1}
               height="py-8"
               variant="gray"
               mode="edit"

@@ -1,3 +1,5 @@
+import Answer from "@/components/submit-answer"
+
 // GoバックエンドのベースURL (環境変数で設定可能)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080"
@@ -39,6 +41,17 @@ export const api = {
   startGame: async (roomCode: string) => {
     const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/start`, {
       method: "POST",
+    })
+    return response.json()
+  },
+
+  submitAnswer: async (roomCode: string, answer: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/answer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ roomCode, answer }),
     })
     return response.json()
   },
