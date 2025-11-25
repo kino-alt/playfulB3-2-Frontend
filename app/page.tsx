@@ -1,11 +1,12 @@
-import SubmitAnswer from "@/components/submit-answer"
+import TitleScreen from '@/components/title-screen'
 
-export default async function SubmitAnswerPage({
-  params,
-}: {
-  params: Promise<{ code: string }>
-}) {
-  const { code } = await params
-
-  return <SubmitAnswer roomCode={code} />
+export const metadata = {
+  title: 'Game Title Screen',
+  description: 'Multiplayer game title screen',
 }
+
+export default function Home() {
+  return <TitleScreen />
+}
+
+
