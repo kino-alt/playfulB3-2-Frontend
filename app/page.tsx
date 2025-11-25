@@ -1,11 +1,12 @@
-import { CreateTopic } from "@/components/create-topic"
+import TitleScreen from '@/components/title-screen'
 
-export default async function CreateTopicPage({
-  params,
-}: {
-  params: Promise<{ code: string }>
-}) {
-  const { code } = await params
-
-  return <CreateTopic roomCode={code} />
+export const metadata = {
+  title: 'Game Title Screen',
+  description: 'Multiplayer game title screen',
 }
+
+export default function Home() {
+  return <TitleScreen />
+}
+
+
