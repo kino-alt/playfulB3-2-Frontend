@@ -1,26 +1,49 @@
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { Roboto } from 'next/font/google';
-import { ThemeProvider } from '@mui/material/styles';
-import theme from './theme';
+import type { Metadata } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
+import './globals.css'
 
-const roboto = Roboto({
-  weight: ['300', '400', '500', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-roboto',
-});
+const _geist = Geist({ subsets: ["latin"] });
+const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
- export default function RootLayout(props : React.PropsWithChildren) {
-   const { children } = props;
-   return (
-    <html lang="en" className={roboto.variable}>
-       <body>
-          <AppRouterCacheProvider>
-           <ThemeProvider theme={theme}>
-              {children}
-           </ThemeProvider>
-          </AppRouterCacheProvider>
-       </body>
-     </html>
-   );
+export const metadata: Metadata = {
+  title: 'Emoji Discussion Game',
+  description: 'Guess the topic from emoji hints in this multiplayer game',
+  generator: 'v0.app',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  icons: {
+    icon: [
+      {
+        url: '/icon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: '/apple-icon.png',
+  },
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="en">
+      <body className={`font-sans antialiased`}>
+        {children}
+      </body>
+    </html>
+  )
 }
