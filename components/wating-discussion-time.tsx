@@ -14,7 +14,7 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
     const [topic, setTopic] = useState("")
     const [isLoading, setIsLoading] = useState(true)
 
-    // temporary values
+    {/*(要修正）temporary values*/}
     useEffect(() => {
         setTheme("Theme")
         setTopic("Topic")
@@ -29,6 +29,7 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
             
             <PageHeader title="Discussion" subtitle={`Let's discuss emojis`} />
 
+            {/*display theme*/}
             <TextDisplay
                 value={isLoading ? "Loading..." : theme}
                 inputtitle=""
@@ -38,6 +39,7 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
                 marginBottom="mb-2"
             />
 
+            {/*display topic*/}
             <TextInput
                 value={isLoading ? "Loading..." : topic}
                 onChange={setTopic}
@@ -49,15 +51,16 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
                 textSize="text-lg"
                 marginBottom="mb-6"
             />
-        
+
+            {/* Discussion Timer */}
             <CountTimer roomCode={roomCode}/>
 
+            {/* Display Selected Emojis */} 
             <DisplaySelectedEmojis
                 selectedEmojis={selectedEmojis}
                 handleRemoveEmoji={() => {}}
                 maxEmojis={maxEmojis}
             />    
-            
         </div>
         </EmojiBackgroundLayout>
     )

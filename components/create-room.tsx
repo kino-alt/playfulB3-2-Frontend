@@ -19,13 +19,14 @@ export default function CreateRoom({ participants : initialParticipants = [] }: 
   const [participants, setParticipants] = useState<string[]>(initialParticipants)
   const router = useRouter()
 
-  // Temporary: Mock room code and participants data
+  {/*(要修正）Temporary: Mock room code and participants data*/}
   useEffect(() => {
     setRoomCode("ABC123")
     setParticipants(["Alice", "Bob", "Charlie", "David", "Eve"])
     setIsLoading(false)
   }, [])
 
+  {/*(要修正) Handle start game action*/}
   const handleStartGame = async () => {
     if (!roomCode || participants.length<3 || participants.length>7) return
 
@@ -53,7 +54,8 @@ export default function CreateRoom({ participants : initialParticipants = [] }: 
             title="Create Room" 
             subtitle="Set up your game" 
         />
-
+        
+        {/* Room Code Display */}
         <TextInput
             value={isLoading ? "Loading..." : roomCode}
             onChange={setRoomCode}

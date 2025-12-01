@@ -2,6 +2,7 @@
 
 import React from "react"
 
+{/* Props Interface */}
 interface TextInputProps {
   value: string
   onChange: (value: string) => void
@@ -35,6 +36,8 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
     },
     ref,
   ) => {
+
+    {/*Input Colors Based on Variant */}
     const getDisplayColors = () => {
       switch (variant) {
         case "primary":
@@ -48,6 +51,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
       }
     }
 
+    {/*Focus Border Colors Based on Variant */}
     const getFocusColors = () => {
       switch (variant) {
         case "primary":
@@ -63,6 +67,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
 
     const isInputtitleShown = inputtitle && inputtitle.trim() !== ""
 
+    {/* Determine if display mode should be shown */}
     const shouldShowDisplay = mode === "display" || (mode === undefined && value.trim() !== "")
     const isDisabled = mode === "display"
 

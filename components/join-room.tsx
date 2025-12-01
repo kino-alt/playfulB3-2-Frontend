@@ -8,9 +8,7 @@ import { useRouter } from "next/navigation"
 import { TextInput } from "./text-input"
 import { api } from "@/lib/api"
 
-type JoinRoomProps = {}
-
-export default function JoinRoom({ }: JoinRoomProps) {
+export default function JoinRoom() {
   const [roomCode, setRoomCode] = useState("")
   const [userName, setUserName] = useState("")
   const [isJoining, setIsJoining] = useState(false)

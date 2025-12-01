@@ -8,6 +8,7 @@ import { TextInput } from "./text-input"
 import { TextDisplay} from "./text-display"
 import { DisplaySelectedEmojis } from "./display-selected-emojis"
 import { useRouter } from "next/navigation"
+import { Modal } from "./modal"
 import { api } from "@/lib/api"
 
 
@@ -22,23 +23,38 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
   const router = useRouter()
   const EMOJI_REGEX = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])$/u;
 
-  // temporary values
+  // (要修正) temporary values
   useEffect(() => {
     setTheme("Theme")
     setIsLoading(false)
     setHint("Hint: Choose emojis that represent the topic well.")
   }, [])
-  
   const maxEmojis = 7
+
+  {/* Toggle hint overlay visibility */}
+  const handleToggleHintOverlay = () => {
+    setShowHintOverlay(prev => !prev)
+  }
   
+  {/* (要修正）Handle emoji input change with validation */}
   const handleEmojiInputChange = (value: string) => {
-    const newChar = value.slice(-1); 
-    
+    if (value === "" || EMOJI_REGEX.test(value)) {
+      setEmojiInput(value);
+    }
+
+    const newChar = value.slice(-1);
     if (newChar === "" || EMOJI_REGEX.test(newChar)) {
       setEmojiInput(newChar);
     }
+
+    if (value.length <= 1) {
+      if (value === "" || EMOJI_REGEX.test(value)) {
+        setEmojiInput(value);
+      }
+    }
   };
     
+  {/* Add emoji to selected list */}
   const handleAddEmoji = () => {
     if (emojiInput.trim() && selectedEmojis.length < maxEmojis) {
       setSelectedEmojis([...selectedEmojis, emojiInput.trim()])
@@ -46,10 +62,12 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
     }
   }
 
+  {/* Remove emoji from selected list */}
   const handleRemoveEmoji = (index: number) => {
     setSelectedEmojis(selectedEmojis.filter((_, i) => i !== index))
   }
 
+  {/* (要修正)Temporary submit handler */}
   const handleSubmit = async () => {
     if (!topic.trim() || selectedEmojis.length === 0) {
       alert("トピックと絵文字を入力してください")
@@ -74,9 +92,19 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
 
   return (
     <EmojiBackgroundLayout>
+
+      {/* Hint Modal */}
+      <Modal
+        isOpen={showHintOverlay} 
+        onClose={handleToggleHintOverlay}
+        title="💡 Hint for Choosing Emojis"
+        content={isLoading ? "Loading hint..." : hint} 
+      />
+
       <div className="w-full max-w-xs flex flex-col h-full">
         <PageHeader title="Set the Topic" subtitle={`Set the topic and choose the emojis`} marginBottom="mb-2" />
-
+        
+        {/*Theme display*/}
         <TextDisplay
           value={isLoading ? "Loading..." : theme}
           inputtitle=""
@@ -86,6 +114,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
           marginBottom="mb-2"
         />
 
+        {/*Topic input*/}
         <TextInput
           value={topic}
           onChange={setTopic}
@@ -102,7 +131,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
           <div className="relative w-24 h-24">
             {/* Hint Overlay Button */}
             <button
-                onClick={() => setShowHintOverlay(true)}
+                onClick={handleToggleHintOverlay}
                 className="absolute top-2 -left-9 z-10 w-6 h-6 rounded-full bg-yellow-400 text-white font-bold flex items-center justify-center text-sm shadow-md hover:bg-yellow-500 transition-colors"
                 title="Refer to Hints"
             >

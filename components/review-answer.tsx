@@ -15,7 +15,7 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
     const [answer, setAnswer] = useState("")
     const [isLoading, setIsLoading] = useState(true)
 
-    // temporary values
+    {/*(要修正) temporary values*/}
     useEffect(() => {
         setTheme("Theme")
         setTopic("Topic")
@@ -23,7 +23,7 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
         setIsLoading(false)
     }, [])
 
-    //temporary submit handler
+    {/*(要修正）temporary submit handler*/}
     const handleSubmit = async () => {
         console.log("[v0] Exitting for room:", roomCode)
         window.location.href = "/"
@@ -35,39 +35,42 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
             
             <PageHeader title="Review Answer" subtitle={`Grade Submissions`} />
 
+            {/*display theme*/}
             <TextDisplay
                 value={isLoading ? "Loading..." : theme}
                 inputtitle=""
                 height="py-0.5"
                 variant="primary"
                 textSize="text-sm"
-                marginBottom="mb-2"
+                marginBottom="mb-4"
             />
 
+            {/*display topic*/}
             <TextInput
                 value={isLoading ? "Loading..." : topic}
                 onChange={setTopic}
                 inputtitle=""
                 placeholder=""
-                height="py-2"
+                height="py-4"
                 variant="primary"
                 mode="display"
                 textSize="text-lg"
-                marginBottom="mb-6"
             />
 
+            {/*display answer*/}
             <TextInput
                 value={isLoading ? "Loading..." : answer}
                 onChange={setAnswer}
                 inputtitle=""
                 placeholder=""
-                height="py-2"
+                height="py-4"
                 variant="secondary"
                 mode="display"
                 textSize="text-lg"
-                marginBottom="mb-6"
+                marginBottom="mb-4"
             />
-
+            
+            {/*display selected emojis*/}
             <DisplaySelectedEmojis
                 selectedEmojis={[]}
                 handleRemoveEmoji={() => {}}
@@ -76,7 +79,7 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
 
             {/*submit button*/}
             <div className="mt-auto">
-            <GameButton variant="primary" onClick={handleSubmit} height="py-2">
+            <GameButton variant="primary" onClick={handleSubmit}>
                 Exit 
             </GameButton>
             </div>  

@@ -14,6 +14,7 @@ export default function SubmitAnswer({ roomCode }: { roomCode: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
 
+  {/* (要修正）Handle answer submission */}
   const handleSubmitAnswer = async () => {
     if (!answer) {
       return
@@ -44,6 +45,8 @@ export default function SubmitAnswer({ roomCode }: { roomCode: string }) {
             title="Submit Answer" 
             subtitle="Enter an answer" 
         />
+
+        {/* Leader Label */}
         <div className="w-full flex justify-start">
           <TextDisplay
             value={"Leader"}
@@ -53,6 +56,7 @@ export default function SubmitAnswer({ roomCode }: { roomCode: string }) {
           />
         </div>
         
+        {/* Answer Input */}
         <div className="flex flex-col items-center justify-center flex-grow">
           <TextInput
               value={answer}

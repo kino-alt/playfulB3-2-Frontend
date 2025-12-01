@@ -12,7 +12,7 @@ export default function WaitingSartGame({roomCode }: { roomCode: string }) {
    const [participants, setParticipants] = useState<string[]>([])
    const router = useRouter()
 
-   // Temporary: Mock participants data
+    {/*(要修正）Temporary: Mock participants data*/}
     useEffect(() => {
       setParticipants(["Alice", "Bob", "Charlie", "David", "Eve"]) 
     }, [])

@@ -1,5 +1,6 @@
 "use client"
 
+{/* Props Interface */}
 interface TextDisplayProps {
   value: string
   inputtitle?: string
@@ -10,7 +11,8 @@ interface TextDisplayProps {
 }
 
 export const TextDisplay = ({value,inputtitle = "",height = "py-3",variant = "primary",textSize = "text-1g sm:text-5g md:text-1xl lg:text-2xl",marginBottom = "mb-6"}: TextDisplayProps)=> {
-        
+    
+    {/*Display Colors Based on Variant */}
     const getDisplayColors = () => {
       switch (variant) {
         case "primary":
