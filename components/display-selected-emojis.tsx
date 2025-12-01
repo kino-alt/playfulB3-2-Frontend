@@ -17,7 +17,7 @@ export function DisplaySelectedEmojis({
   return (
     <div className="bg-white/10 rounded-2xl p-1 flex-grow">
         <p className="text-amber-600/80 text-xs mb-2">Selected ({selectedEmojis.length}/{displayLength})</p>
-        <div className="grid grid-cols-4 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-3">
         {Array.from({ length: displayLength}).map((_, index) => (
             <div
             key={index}
