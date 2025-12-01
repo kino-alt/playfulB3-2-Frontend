@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { use } from "react"
 import {useState, useEffect} from "react"
 import { TextInput } from "./text-input"
 import { api } from "@/lib/api"
@@ -9,12 +9,14 @@ export function CountTimer({roomCode}:  { roomCode: string }){
   const [timer, setTimer] = useState("")
     
   // Temporary: Mock timer value
-  setTimer("00:30")
+  useEffect(() => {
+    setTimer("00:30")
+  }, [])
 
   return(
     <TextInput
           value={timer}
-          onChange={setTimer}
+          onChange={() => {}}
           inputtitle=""
           placeholder=""
           height="py-10"
