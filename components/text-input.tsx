@@ -13,6 +13,8 @@ interface TextInputProps {
   mode?: "edit" | "display"
   uppercase?: boolean
   textSize?: string
+  marginBottom?: string
+  isEmojiInput?: boolean
 }
 
 export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
@@ -28,6 +30,8 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
       mode,
       uppercase = true,
       textSize = "text-1g sm:text-5g md:text-1xl lg:text-2xl",
+      marginBottom = "mb-6",
+      isEmojiInput = false
     },
     ref,
   ) => {
@@ -63,12 +67,12 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
     const isDisabled = mode === "display"
 
     return (
-      <div className="mb-6">
-        {isInputtitleShown && <p className="text-xs text-gray-500 font-semibold uppercase mb-2">{inputtitle}</p>}
+      <div className = {marginBottom}>
+        {isInputtitleShown && <p className="text-xs text-gray-500 font-semibold mb-2">{inputtitle}</p>}
 
         {isDisabled ? (
             <div className={`px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center`}>
-            <p className={`${textSize} font-bold tracking-widest`}>{value}</p>
+            <p className={`${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'}`}>{value}</p>
           </div>
         ) : (
             <div className="relative w-full">
@@ -76,7 +80,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
                 <div
                 className={`absolute inset-0 px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center`}
                 >
-                <p className={`${textSize} font-bold tracking-widest`}>{value}</p>
+                <p className={`${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'}`}>{value}</p>
                 </div>
             )}
 
@@ -92,7 +96,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
                 shouldShowDisplay && value.trim() ? "bg-transparent text-transparent" : "bg-white text-gray-700"
               } border-2 ${
                 shouldShowDisplay && value.trim() ? "border-transparent" : "border-gray-300"
-              } rounded-xl ${textSize} font-bold tracking-widest text-center placeholder:text-gray-400 focus:outline-none ${getFocusColors()} transition-all caret-gray-700`}
+              } rounded-xl ${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'} text-center placeholder:text-gray-400 focus:outline-none ${getFocusColors()} transition-all caret-gray-700`}
             />
           </div>
         )}
