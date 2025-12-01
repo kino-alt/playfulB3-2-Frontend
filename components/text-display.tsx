@@ -6,9 +6,10 @@ interface TextDisplayProps {
   height?: string
   variant?: "primary" | "secondary" | "gray"
   textSize?: string
+  marginBottom?: string
 }
 
-export const TextDisplay = ({value,inputtitle = "",height = "py-3",variant = "primary",textSize = "text-1g sm:text-5g md:text-1xl lg:text-2xl",}: TextDisplayProps)=> {
+export const TextDisplay = ({value,inputtitle = "",height = "py-3",variant = "primary",textSize = "text-1g sm:text-5g md:text-1xl lg:text-2xl",marginBottom = "mb-6"}: TextDisplayProps)=> {
         
     const getDisplayColors = () => {
       switch (variant) {
@@ -24,10 +25,10 @@ export const TextDisplay = ({value,inputtitle = "",height = "py-3",variant = "pr
     }
 
     return (
-        <div className="mb-6">
-            <p className="text-xs text-gray-500 font-semibold uppercase mb-2">{inputtitle}</p>
+        <div className={marginBottom}>
+            <p className="text-xs text-gray-500 font-semibold  mb-2">{inputtitle}</p>
             <div className={`${height} rounded-xl border-2 transition-all duration-300 bg-gradient-to-r ${getDisplayColors()} flex items-center justify-center`}>
-            <p className={`${textSize} font-bold tracking-widest`}>{value}"None"</p>
+            <p className={`${textSize} font-bold tracking-widest`}>{value}</p>
             </div>
         </div>
     )
