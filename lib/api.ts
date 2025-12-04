@@ -1,97 +1,119 @@
-import Answer from "@/components/submit-answer"
+// lib/api.ts
 
-// GoバックエンドのベースURL (環境変数で設定可能)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
 
 export const api = {
-  // Create room API(HTTP)
+  /** -------------------------------
+   *  1. Create Room
+   *  POST /api/rooms
+   *  ------------------------------- */
   createRoom: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/create`, {
+    const response = await fetch(`${API_BASE_URL}/api/rooms`, {
       method: "POST",
-    })
-    return response.json()
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) throw new Error("Failed to create room");
+    return response.json();
   },
 
-  // Join room API(HTTP)
+  /** -------------------------------
+   *  2. Join Room
+   *  POST /api/user
+   *  ------------------------------- */
   joinRoom: async (roomCode: string, userName: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/join`, {
+    const response = await fetch(`${API_BASE_URL}/api/user`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ roomCode, userName }),
-    })
-    return response.json()
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        room_code: roomCode,
+        user_name: userName,
+      }),
+    });
+
+    if (!response.ok) throw new Error("Failed to join room");
+    return response.json();
   },
 
-  createTheme: async (roomCode:string) => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/theme`, {
+  /** -------------------------------
+   *  3. Submit Topic
+   *  POST /api/rooms/{room_id}/topic
+   *  ------------------------------- */
+  submitTopic: async (roomId: string, topic: string, emoji: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/topic`, {
       method: "POST",
-    })
-    return response.json()
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic,
+        emoji,
+      }),
+    });
+
+    if (!response.ok) throw new Error("Failed to submit topic");
+    return response.json();
   },
 
-  // Get participants list API(ws)
-  getParticipants: async (roomCode: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/participants`)
-    return response.json()
+  /** -------------------------------
+   *  4. Submit Answer
+   *  POST /api/rooms/{room_id}/answer
+   *  ------------------------------- */
+  submitAnswer: async (roomId: string, userId: string, answer: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        topic: answer, // 後端字段名是 topic（答案的内容）
+      }),
+    });
+
+    if (!response.ok) throw new Error("Failed to submit answer");
+    return response.json();
   },
 
-  startGame: async (roomCode: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/start`, {
+  /** -------------------------------
+   *  5. Start Game
+   *  POST /api/rooms/{room_id}/start
+   *  ------------------------------- */
+  startGame: async (roomId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/start`, {
       method: "POST",
-    })
-    return response.json()
+    });
+
+    if (!response.ok) throw new Error("Failed to start game");
+    return response.json();
   },
 
-  // Submit topic API(HTTP)
-  submitTopic: async (roomCode: string, topic:string, emoji:[]) => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/answer`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ roomCode, topic, emoji }),
-    })
-    return response.json()
-  },
-
-  submitAnswer: async (roomCode: string, answer: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/answer`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ roomCode, answer }),
-    })
-    return response.json()
-  },
-  
-  connectWebSocket: (roomCode: string, onMessage: (data: any) => void) => {
-    const ws = new WebSocket(`${WS_BASE_URL}/api/rooms/${roomCode}/ws`)
+  /** -------------------------------
+   *  6. WebSocket connect
+   *  ws://.../api/rooms/{room_id}/ws
+   *  ------------------------------- */
+  connectWebSocket: (roomId: string, onMessage: (data: any) => void) => {
+    const ws = new WebSocket(`${WS_BASE_URL}/api/rooms/${roomId}/ws`);
 
     ws.onopen = () => {
-      console.log("[v0] WebSocket connected to room:", roomCode)
-    }
+      console.log("[WS] Connected:", roomId);
+    };
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data)
-        onMessage(data)
-      } catch (error) {
-        console.error("[v0] Failed to parse WebSocket message:", error)
+        const data = JSON.parse(event.data);
+        onMessage(data);
+      } catch (err) {
+        console.error("[WS] Invalid message:", err);
       }
-    }
+    };
 
-    ws.onerror = (error) => {
-      console.error("[v0] WebSocket error:", error)
-    }
+    ws.onerror = (err) => {
+      console.error("[WS] Error:", err);
+    };
 
     ws.onclose = () => {
-      console.log("[v0] WebSocket disconnected")
-    }
+      console.log("[WS] Disconnected");
+    };
 
-    return ws
+    return ws;
   },
-}
+};
