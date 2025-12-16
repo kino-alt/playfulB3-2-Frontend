@@ -6,33 +6,31 @@ import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import {PageHeader} from "./page-header"
 import { useRouter } from "next/navigation"
 import { TextInput } from "./text-input"
-import { api } from "@/lib/api"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
 export default function JoinRoom() {
   const [roomCode, setRoomCode] = useState("")
   const [userName, setUserName] = useState("")
-  const [isJoining, setIsJoining] = useState(false)
   const router = useRouter()
+  const { 
+    roomId,
+    joinRoom,
+  } = useRoomData();
 
   const handleJoinRoom = async () => {
     if (!roomCode || !userName) {
       return
     }
 
-    setIsJoining(true)
     try {
-      const data = await api.joinRoom(roomCode.toUpperCase(), userName)
-
-      if (data.success) {
-        router.push(`/room/${roomCode.toUpperCase()}/waiting-start-game`)
-      } else {
-        alert(data.error || "Failed to join room")
-      }
+      console.log("[v0] Starting game for room:", roomCode)
+      await joinRoom(roomCode,userName);
+      router.push(`/room/${roomId}/waiting-start-game`);      
     } catch (error) {
-      console.error("Error joining room:", error)
-      alert("Failed to join room")
-    } finally {
-      setIsJoining(false)
+      console.error("Error starting game:", error)
+      alert("Failed to start game")
     }
   }
 
@@ -67,8 +65,8 @@ export default function JoinRoom() {
 
         {/* Join Button */}
         <div className="mt-auto">
-          <GameButton variant="secondary" onClick={handleJoinRoom} disabled={isJoining || !roomCode || !userName}>
-            {isJoining ? "Joining..." : "Join Room"}
+          <GameButton variant="secondary" onClick={handleJoinRoom} disabled={!roomCode || !userName}>
+            {"Join Room"}
           </GameButton>
         </div>
       </div>

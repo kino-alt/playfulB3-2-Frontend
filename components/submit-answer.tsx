@@ -7,33 +7,38 @@ import {PageHeader} from "./page-header"
 import { useRouter } from "next/navigation"
 import { TextInput } from "./text-input"
 import { TextDisplay } from "./text-display"
-import { api } from "@/lib/api"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
-export default function SubmitAnswer({ roomCode }: { roomCode: string }) {
-  const [answer, setAnswer] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export default function SubmitAnswer() {
+  const [answerInput, setAnswerInput] = useState("")
   const router = useRouter()
+  const { 
+      roomId,
+      roomState,
+      globalError,
+      submitAnswer
+  } = useRoomData();
 
-  {/* (要修正）Handle answer submission */}
+  // push next page
+  useEffect(() => {
+    if (roomState === GameState.CHECKING && roomId) {
+         router.push(`/room/${roomId}/review-answer`);
+    }
+  }, [roomState, roomId, router])
+
+  {/* Handle answer submission */}
   const handleSubmitAnswer = async () => {
-    if (!answer) {
+    if (!answerInput) {
       return
     }
-
-    setIsSubmitting(true)
     try {
-      const data = await api.submitAnswer(roomCode.toUpperCase(),answer)
-
-      if (data.success) {
-        router.push(`/room/${roomCode.toUpperCase()}/waiting-start-game`)
-      } else {
-        alert(data.error || "Failed to submit answer")
-      }
+        console.log(`Submitting answer: ${answerInput}`);
+        await submitAnswer(answerInput); 
     } catch (error) {
-      console.error("Error submitting answer:", error)
-      alert("Failed to submit answer")
-    } finally {
-      setIsSubmitting(false)
+        console.error("Error submitting answer:", error);
+        alert("Fail to submit answer");
     }
   }
 
@@ -59,8 +64,8 @@ export default function SubmitAnswer({ roomCode }: { roomCode: string }) {
         {/* Answer Input */}
         <div className="flex flex-col items-center justify-center flex-grow">
           <TextInput
-              value={answer}
-              onChange={setAnswer}
+              value={answerInput}
+              onChange={setAnswerInput}
               placeholder="Enter answer"
               maxLength={20}
               height="py-5"
@@ -71,8 +76,8 @@ export default function SubmitAnswer({ roomCode }: { roomCode: string }) {
 
         {/* Submit Button */}
         <div className="mt-auto">
-          <GameButton variant="secondary" onClick={handleSubmitAnswer} disabled={isSubmitting || !answer}>
-            {isSubmitting ? "Submitting..." : "Submit"}
+          <GameButton variant="secondary" onClick={handleSubmitAnswer} disabled={!answerInput}>
+            {"Submit"}
           </GameButton>
         </div>
       </div>

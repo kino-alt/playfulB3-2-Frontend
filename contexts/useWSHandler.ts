@@ -16,6 +16,11 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                 setState(prev => {
                     let newState = { ...prev, roomState: nextState as GameState, globalError: null };
 
+                    if (data) {
+                        if (data.topic !== undefined) newState.topic = data.topic;
+                        if (data.selected_emojis !== undefined) newState.selectedEmojis = data.selected_emojis;
+                    }
+
                     // discussing state data update
                     if (nextState === GameState.DISCUSSING && data) {
                         const assignments = data.assignments || []; 
@@ -41,11 +46,17 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
 
             //participant list update handler
             case 'PARTICIPANT_UPDATE':
-                setState(prev => ({ 
-                    ...prev, 
-                    participantsList: payload.participants as Participant[],
-                    globalError: null
-                }));
+                setState(prev => {
+                    const newParticipants = payload.participants as Participant[];
+                    const me = newParticipants.find(p => p.user_id === prev.myUserId);
+                    
+                    return { 
+                        ...prev, 
+                        participantsList: newParticipants,
+                        isLeader: me ? me.is_Leader : prev.isLeader, 
+                        globalError: null
+                    }
+                });
                 break;
 
             //timer tick handler
@@ -70,6 +81,6 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
             default:
                 console.warn(`[v0] Unknown WS message type: ${type}`);
         }
-    }, []);
+    }, [setState, myUserId]);
     return handleWebSocketMessage;
 };

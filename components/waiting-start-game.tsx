@@ -7,15 +7,25 @@ import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { PageHeader } from "./page-header"
 import { ParticipantList } from "./participant-list"
 import { WaitingAnimation } from "./waiting-animation"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
-export default function WaitingSartGame({roomCode }: { roomCode: string }) {
-   const [participants, setParticipants] = useState<string[]>([])
+export default function WaitingSartGame() {
    const router = useRouter()
-
-    {/*(要修正）Temporary: Mock participants data*/}
-    useEffect(() => {
-      setParticipants(["Alice", "Bob", "Charlie", "David", "Eve"]) 
-    }, [])
+     const { 
+           roomId,
+           roomState,
+           participantsList,
+           globalError,
+       } = useRoomData();
+   
+     // push next page
+       useEffect(() => { 
+         if (roomState === GameState.SETTING_TOPIC && roomId) {
+           router.push(`/room/${roomId}/waiting-create-topic`);
+         }
+       }, [roomState, roomId, router])
 
   return (
     <EmojiBackgroundLayout>
@@ -29,7 +39,7 @@ export default function WaitingSartGame({roomCode }: { roomCode: string }) {
 
         {/* Participants List */}
         <div className="w-full mb-8">
-            <ParticipantList participants={participants} />
+            <ParticipantList participants={participantsList} />
         </div>
 
       </div>

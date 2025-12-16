@@ -9,27 +9,38 @@ import { TextDisplay} from "./text-display"
 import { DisplaySelectedEmojis } from "./display-selected-emojis"
 import { useRouter } from "next/navigation"
 import { Modal } from "./modal"
-import { api } from "@/lib/api"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
 
-export function CreateTopic({roomCode}:  { roomCode: string }) {
-  const [theme, setTheme] =useState("")
-  const [topic, setTopic] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
+export function CreateTopic() {
+  const [topicInput, setTopicInput] = useState("")
   const [emojiInput, setEmojiInput] = useState("")
-  const [hint, setHint] = useState("")
+  const [localSelectedEmojis, setLocalSelectedEmojis] = useState<string[]>([])
   const [showHintOverlay, setShowHintOverlay] = useState(false)
-  const [selectedEmojis, setSelectedEmojis] = useState<string[]>([])
   const router = useRouter()
+  const { 
+    roomId,
+    theme, 
+    hint,  
+    participantsList,
+    roomState,
+    maxEmojis,
+    submitTopic,
+    globalError,
+  } = useRoomData();
   const EMOJI_REGEX = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])$/u;
-
-  // (要修正) temporary values
+  
+  // push next page
   useEffect(() => {
-    setTheme("Theme")
-    setIsLoading(false)
-    setHint("Hint: Choose emojis that represent the topic well.")
-  }, [])
-  const maxEmojis = 7
+    if (roomState === GameState.DISCUSSING && roomId) {
+         router.push(`/room/${roomId}/waiting-doscussion-time`);
+    }
+    if (roomState !== GameState.SETTING_TOPIC && roomState !== GameState.DISCUSSING) {
+         router.push(`/room/${roomId}`); 
+    }
+  }, [roomState, roomId, router])
 
   {/* Toggle hint overlay visibility */}
   const handleToggleHintOverlay = () => {
@@ -56,37 +67,35 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
     
   {/* Add emoji to selected list */}
   const handleAddEmoji = () => {
-    if (emojiInput.trim() && selectedEmojis.length < maxEmojis) {
-      setSelectedEmojis([...selectedEmojis, emojiInput.trim()])
-      setEmojiInput("")
+    if (emojiInput && localSelectedEmojis.length < maxEmojis ) {
+      setLocalSelectedEmojis([...localSelectedEmojis, emojiInput]);
+      setEmojiInput(""); 
+    } else if (localSelectedEmojis.length >= maxEmojis) {
+      alert(`絵文字は最大 ${maxEmojis} 個までしか選択できません。`);
     }
   }
 
   {/* Remove emoji from selected list */}
   const handleRemoveEmoji = (index: number) => {
-    setSelectedEmojis(selectedEmojis.filter((_, i) => i !== index))
+    setLocalSelectedEmojis(localSelectedEmojis.filter((_, i) => i !== index));
   }
 
-  {/* (要修正)Temporary submit handler */}
+  {/*submit handler */}
   const handleSubmit = async () => {
-    if (!topic.trim() || selectedEmojis.length === 0) {
-      alert("トピックと絵文字を入力してください")
-      return
+    if (!topicInput) {
+      alert(`お題を入力してください。`);
+      return;
     }
-
+    if (localSelectedEmojis.length !== maxEmojis) {
+        alert(`絵文字を${maxEmojis} 個選択してください。`);
+        return;
+    }
     try {
-      console.log("[v0] Starting game for room:", roomCode)
-      const data = await api.submitTopic(roomCode, topic.trim(), selectedEmojis as unknown as [])
-
-      if (data.success) {
-        router.push(`/room/${roomCode.toUpperCase()}/waiting-discussion-time`)
-      } else {
-        console.error("Failed to start game:", data.error)
-        alert("Failed to start game")
-      }
+        console.log(`Submitting topic: ${topicInput} with emojis: ${localSelectedEmojis.join(', ')}`);
+        await submitTopic(topicInput, localSelectedEmojis); 
     } catch (error) {
-      console.error("Error starting game:", error)
-      alert("Failed to start game")
+        console.error("Error submitting topic:", error);
+        alert("トピックの提出に失敗しました。");
     }
   }
 
@@ -98,7 +107,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
         isOpen={showHintOverlay} 
         onClose={handleToggleHintOverlay}
         title="💡 Hint for Choosing Emojis"
-        content={isLoading ? "Loading hint..." : hint} 
+        content={hint} 
       />
 
       <div className="w-full max-w-xs flex flex-col h-full">
@@ -106,7 +115,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
         
         {/*Theme display*/}
         <TextDisplay
-          value={isLoading ? "Loading..." : theme}
+          value={theme || "N/A"}
           inputtitle=""
           height="py-0.5"
           variant="primary"
@@ -116,8 +125,8 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
 
         {/*Topic input*/}
         <TextInput
-          value={topic}
-          onChange={setTopic}
+          value={topicInput}
+          onChange={setTopicInput}
           inputtitle=""
           placeholder="Enter the Topic"
           height="py-2"
@@ -157,7 +166,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
           
            {/* Add button */}
           <div className="flex-shrink-0 mb-1"> 
-            <GameButton variant="secondary" onClick={handleAddEmoji} height="p-2"> 
+            <GameButton variant="secondary" onClick={handleAddEmoji} height="p-2" disabled={!emojiInput || localSelectedEmojis.length >= maxEmojis}> 
               <p className="text-xs font-bold uppercase"> ADD</p>
             </GameButton>
           </div>
@@ -165,7 +174,7 @@ export function CreateTopic({roomCode}:  { roomCode: string }) {
 
         {/*display selected emojis*/}
         <DisplaySelectedEmojis
-          selectedEmojis={selectedEmojis}
+          selectedEmojis={localSelectedEmojis}
           handleRemoveEmoji={handleRemoveEmoji}
           maxEmojis={maxEmojis}
         />
