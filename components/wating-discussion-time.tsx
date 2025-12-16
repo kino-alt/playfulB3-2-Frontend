@@ -6,22 +6,31 @@ import { PageHeader } from "./page-header"
 import { TextInput } from "./text-input"
 import { TextDisplay } from "./text-display"
 import { CountTimer } from "./count-timer"
-import { api } from "@/lib/api"
 import { DisplaySelectedEmojis } from "./display-selected-emojis"
+import { useRouter } from "next/router"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
-export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
-    const [theme, setTheme] =useState("")
-    const [topic, setTopic] = useState("")
-    const [isLoading, setIsLoading] = useState(true)
-
-    {/*(要修正）temporary values*/}
-    useEffect(() => {
-        setTheme("Theme")
-        setTopic("Topic")
-        setIsLoading(false)
-    }, [])
-    const selectedEmojis: string[] = []
-    const maxEmojis = 7
+export function WaitingDiscussionTime() {
+    const router = useRouter()
+      const { 
+            roomId,
+            theme,
+            topic,
+            selectedEmojis,
+            maxEmojis,
+            timer,
+            roomState,
+            globalError,
+        } = useRoomData();
+    
+      // push next page
+        useEffect(() => { 
+          if (roomState === GameState.CHECKING && roomId) {
+            router.push(`/room/${roomId}/review-answer`);
+          }
+        }, [roomState, roomId, router])
 
     return (
         <EmojiBackgroundLayout>
@@ -31,7 +40,7 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
 
             {/*display theme*/}
             <TextDisplay
-                value={isLoading ? "Loading..." : theme}
+                value={theme || ""}
                 inputtitle=""
                 height="py-0.5"
                 variant="primary"
@@ -41,8 +50,8 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
 
             {/*display topic*/}
             <TextInput
-                value={isLoading ? "Loading..." : topic}
-                onChange={setTopic}
+                value={topic || ""}
+                onChange={()=>{}}
                 inputtitle=""
                 placeholder=""
                 height="py-2"
@@ -53,7 +62,7 @@ export function WaitingDiscussionTime({roomCode}:  { roomCode: string }) {
             />
 
             {/* Discussion Timer */}
-            <CountTimer roomCode={roomCode}/>
+            <CountTimer timervalue={timer}/>
 
             {/* Display Selected Emojis */} 
             <DisplaySelectedEmojis

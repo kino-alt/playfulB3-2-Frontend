@@ -77,6 +77,29 @@ export const api = {
   },
 
   /** -------------------------------
+   * (要修正)ゲーム開始アクション (POST /api/rooms/{room_id}/start)
+   * ------------------------------- */
+  startGame: async (roomId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/start`, {
+      method: "POST",
+    });
+
+    if (!response.ok) throw new Error("Failed to start game");
+    return response.json();
+  },
+  /** -------------------------------
+   * (要修正)ゲーム終了アクション (POST /api/rooms/{room_id}/start)
+   * ------------------------------- */
+  finishRoom: async (roomId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/finish`, {
+      method: "POST",
+    });
+
+    if (!response.ok) throw new Error("Failed to finish game");
+    return response.json();
+  },
+
+  /** -------------------------------
    *  WebSocket connect
    *  ws://.../api/rooms/{room_id}/ws
    *  ------------------------------- */

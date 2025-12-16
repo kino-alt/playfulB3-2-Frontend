@@ -7,39 +7,50 @@ import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { ParticipantList } from "./participant-list"
 import {PageHeader} from "./page-header"
 import { TextInput } from "./text-input"
-import { api } from "@/lib/api"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
-interface CreateRoomProps {
-  participants?: string[]
-}
-
-export default function CreateRoom({ participants : initialParticipants = [] }: CreateRoomProps) {
-  const [roomCode, setRoomCode] = useState("")
+export default function CreateRoom() {
   const [isLoading, setIsLoading] = useState(true)
-  const [participants, setParticipants] = useState<string[]>(initialParticipants)
   const router = useRouter()
+  const { 
+    roomCode, 
+    roomId,
+    participantsList, 
+    roomState,
+    startGame,
+    globalError,
+  } = useRoomData();
 
-  {/*(要修正）Temporary: Mock room code and participants data*/}
+  {/*get room code*/}
+ useEffect(() => {
+    if (roomCode) {
+      setIsLoading(false)
+    }
+  }, [roomCode])
+
+  {/* push next page*/}
   useEffect(() => {
-    setRoomCode("ABC123")
-    setParticipants(["Alice", "Bob", "Charlie", "David", "Eve"])
-    setIsLoading(false)
-  }, [])
+    // roomState が SETTING_TOPIC に変わったら画面遷移
+    if (roomState === GameState.SETTING_TOPIC && roomCode) {
+         router.push(`/room/${roomId}/create-topic`);
+    }
+  }, [roomState, roomId, router]);
 
-  {/*(要修正) Handle start game action*/}
+  {/*Handle start game action*/}
   const handleStartGame = async () => {
-    if (!roomCode || participants.length<3 || participants.length>7) return
+    const currentParticipantsCount = participantsList.length;
+
+    //check a number of particpants
+    if (!roomCode || currentParticipantsCount < 3 || currentParticipantsCount > 7) {
+        if (currentParticipantsCount < 3 || currentParticipantsCount > 7) alert("参加人数は3人から7人まで必要です。");
+        return;
+    }
 
     try {
       console.log("[v0] Starting game for room:", roomCode)
-      const data = await api.startGame(roomCode)
-
-      if (data.success) {
-        router.push(`/room/${roomCode.toUpperCase()}/create-topic`)
-      } else {
-        console.error("Failed to start game:", data.error)
-        alert("Failed to start game")
-      }
+      await startGame();      
     } catch (error) {
       console.error("Error starting game:", error)
       alert("Failed to start game")
@@ -57,8 +68,8 @@ export default function CreateRoom({ participants : initialParticipants = [] }: 
         
         {/* Room Code Display */}
         <TextInput
-            value={isLoading ? "Loading..." : roomCode}
-            onChange={setRoomCode}
+            value={isLoading ? "Loading..." : roomCode || "N/A"}
+            onChange={() => {}}
             inputtitle="Room Code"
             height = "py-3"
             variant="primary"
@@ -67,13 +78,15 @@ export default function CreateRoom({ participants : initialParticipants = [] }: 
         />
 
         {/* Participants List */}
-        <ParticipantList participants={participants} />
+        <ParticipantList participants={participantsList} />
 
         {/* Start Button */}
         <div className="mt-auto">
-          <GameButton variant="primary" onClick={handleStartGame}>
-            Start Game
-          </GameButton>
+          {GameState.WAITING && (
+              <GameButton variant="primary" onClick={handleStartGame} disabled={ParticipantList.length < 4 || ParticipantList.length > 8}>
+                  Start Game 
+              </GameButton>
+          )}
         </div>
       </div>
     </EmojiBackgroundLayout>

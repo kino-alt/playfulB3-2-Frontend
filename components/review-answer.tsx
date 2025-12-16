@@ -5,28 +5,46 @@ import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { PageHeader } from "./page-header"
 import { TextInput } from "./text-input"
 import { TextDisplay } from "./text-display" 
-import { api } from "@/lib/api"
 import { DisplaySelectedEmojis } from "./display-selected-emojis"
 import { GameButton } from "./game-button"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
-export function ReviewAnswer({roomCode}:  { roomCode: string }) {
-    const [theme, setTheme] =useState("")
-    const [topic, setTopic] = useState("")
-    const [answer, setAnswer] = useState("")
-    const [isLoading, setIsLoading] = useState(true)
+export function ReviewAnswer() {
+    const { 
+        roomId,
+        theme, 
+        topic,
+        answer,
+        selectedEmojis,
+        roomState,
+        globalError,
+        isHost,
+        finishRoom
+    } = useRoomData();
 
-    {/*(要修正) temporary values*/}
+    // push next page
     useEffect(() => {
-        setTheme("Theme")
-        setTopic("Topic")
-        setAnswer("Sample Answer")
-        setIsLoading(false)
-    }, [])
+        if (roomState === GameState.FINISHED && roomId) {
+            window.location.href = "/" 
+        }
+    }, [roomState, roomId])
 
-    {/*(要修正）temporary submit handler*/}
+    {/*submit handler*/}
     const handleSubmit = async () => {
-        console.log("[v0] Exitting for room:", roomCode)
-        window.location.href = "/"
+        if (isHost) {
+            try {
+                console.log("[v0] Host finishing game for room:", roomId)
+                await finishRoom();
+            } catch (error) {
+                console.error("Error finishing room:", error);
+                alert("ゲームの終了処理に失敗しました。");
+            }
+        } else {
+            console.log("[v0] Participant exitting for room:", roomId)
+            window.location.href = "/" 
+        }
     }
 
     return (
@@ -37,7 +55,7 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
 
             {/*display theme*/}
             <TextDisplay
-                value={isLoading ? "Loading..." : theme}
+                value={theme || ""}
                 inputtitle=""
                 height="py-0.5"
                 variant="primary"
@@ -47,8 +65,8 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
 
             {/*display topic*/}
             <TextInput
-                value={isLoading ? "Loading..." : topic}
-                onChange={setTopic}
+                value={topic || ""}
+                onChange={() => {}}
                 inputtitle=""
                 placeholder=""
                 height="py-4"
@@ -59,8 +77,8 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
 
             {/*display answer*/}
             <TextInput
-                value={isLoading ? "Loading..." : answer}
-                onChange={setAnswer}
+                value={answer ||""}
+                onChange={() => {}}
                 inputtitle=""
                 placeholder=""
                 height="py-4"
@@ -72,9 +90,9 @@ export function ReviewAnswer({roomCode}:  { roomCode: string }) {
             
             {/*display selected emojis*/}
             <DisplaySelectedEmojis
-                selectedEmojis={[]}
+                selectedEmojis={selectedEmojis}
                 handleRemoveEmoji={() => {}}
-                maxEmojis={7}
+                maxEmojis={selectedEmojis.length}
             /> 
 
             {/*submit button*/}

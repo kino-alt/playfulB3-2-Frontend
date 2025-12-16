@@ -5,23 +5,35 @@ import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { PageHeader } from "./page-header"
 import { TextDisplay } from "./text-display"
 import { CountTimer } from "./count-timer"
-import { api } from "@/lib/api"
 import FukidashiImage from '../images/speach_bubble.png'
 import { Modal } from "./modal"
+import { useRouter } from "next/navigation"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
 
-export function DiscussionTime({roomCode}:  { roomCode: string }) {
-  const [isLoading, setIsLoading] = useState(true)
-  const [emoji, setEmoji] = useState("")
-  const [leader, setLeader] = useState("")
+export function DiscussionTime() {
   const [showHintOverlay, setShowHintOverlay] = useState(true)
+  const router = useRouter();
+  const {
+    roomId,
+    roomState,
+    AssignedEmoji,
+    isLeader,
+    timer, 
+    globalError,
+  } = useRoomData();
 
-  {/*(要修正）temporary values*/}
+  // push next page
   useEffect(() => { 
-    setEmoji("👑")
-    setIsLoading(false)
-    setLeader("Leader")
-  }, [])
+    if (roomState === GameState.ANSWERING && roomId) {
+      if(isLeader)
+         router.push(`/room/${roomId}/submit-answer`);
+      else
+         router.push(`/room/${roomId}/waiting-answer`);
+    }
+  }, [roomState, roomId, router])
 
   {/* Toggle hint overlay visibility */}
   const handleToggleHintOverlay = () => {
@@ -46,14 +58,16 @@ export function DiscussionTime({roomCode}:  { roomCode: string }) {
         <div className="w-full flex justify-between items-center mb-6">
                 
             {/* Leader Display */}
-            <TextDisplay
-                value={isLoading ? "Loading..." : ` ${leader}`}
-                inputtitle=""
-                height="py-0.5"
-                variant="primary"
-                textSize="text-xs"
-                marginBottom="mb-0" 
-            />
+            {isLeader &&(
+              <TextDisplay
+                  value={"Leader"}
+                  inputtitle=""
+                  height="py-0.5"
+                  variant="primary"
+                  textSize="text-xs"
+                  marginBottom="mb-0" 
+              />
+            )}
             
             {/* 2. Hint Button  */}
             <button
@@ -66,7 +80,7 @@ export function DiscussionTime({roomCode}:  { roomCode: string }) {
         </div>
         
         {/* Timer Display */}
-        <CountTimer roomCode={roomCode}/>
+        <CountTimer timervalue={timer}/>
 
         {/* Emoji Display */}
         <div className="w-full flex justify-center mt-4 mb-4">
@@ -80,7 +94,7 @@ export function DiscussionTime({roomCode}:  { roomCode: string }) {
               
                 <div className="absolute inset-0 flex items-center justify-center transform translate-y-[-15px]">
                     <p className="text-8xl font-bold">
-                        {isLoading ? "..." : emoji}
+                        {AssignedEmoji || ""}
                     </p>
                 </div>
                 

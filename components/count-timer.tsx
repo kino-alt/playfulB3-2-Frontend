@@ -1,21 +1,17 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
 import { TextInput } from "./text-input"
 
-export function CountTimer({ roomCode }:  { roomCode: string }){
-  const [timer, setTimer] = useState("")
-    
-  {/*(要修正）Temporary: Mock timer value*/}
-  useEffect(() => {
-    setTimer("00:30")
-  }, [])
+interface CountTimerProps {
+  timervalue: string | null
+}
 
-  return(
+export function CountTimer({ timervalue }: CountTimerProps) {
+    return(
     <>
       {/* Timer Display */}
       <TextInput
-        value={timer}
+        value={timervalue || "00:00"}
         onChange={() => {}}
         inputtitle=""
         placeholder=""
