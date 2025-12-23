@@ -6,26 +6,28 @@ export const MSWProvider = ({ children }: { children: React.ReactNode }) => {
   const [mswReady, setMswReady] = useState(false);
 
   useEffect(() => {
-    async function init() {
-      // 開発環境かつブラウザ環境のみ実行
-      if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+    const init = async () => {
+      // localhost かつ ブラウザ環境のみ
+      if (typeof window !== "undefined" && 
+          (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
         try {
           const { worker } = await import("@/src/mocks/browser");
           await worker.start({
-            onUnhandledRequest: "bypass",
+            // 登録されていないリクエスト（Next.js内部通信など）は無視する
+            onUnhandledRequest: "bypass", 
           });
+          console.log("[MSW] Mocking enabled.");
         } catch (error) {
-          console.error("MSWの起動に失敗しました:", error);
+          console.error("[MSW] Failed to start:", error);
         }
       }
       setMswReady(true);
-    }
+    };
     init();
   }, []);
 
-  // 準備ができるまでは何も出さない（一瞬チラつくのを防ぐ）
-  // もし真っ黒のままなら、ここを return <>{children}</>; に変えてみてください
-  if (!mswReady) return null; 
+  // 完全に準備ができるまで表示を待つ（真っ白になる場合はここをチェック）
+  if (!mswReady) return null;
 
   return <>{children}</>;
 };
