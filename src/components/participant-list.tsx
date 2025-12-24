@@ -6,20 +6,15 @@ interface ParticipantListProps {
 }
 
 export function ParticipantList({ participants }: ParticipantListProps) {
-  // 1. ホストを除外 (自分以外の3人が残る)
-  const players = participants.filter(p => p.role !== 'host');
-  
-  // 2. リーダーを探す (MSWが "true" という文字列で送っている場合に対応)
-  const leader = players.find(p => String(p.is_Leader) === "true");
-  
-  // 3. リーダー以外のプレイヤーを抽出
-  // (リーダーが見つからない場合、全員が others に入るようにする)
-  const otherPlayers = leader 
-    ? players.filter(p => p.user_id !== leader.user_id) 
-    : players;
+  // participant-list.tsx 修正ロジック
+const players = participants.filter(p => p.role !== 'host');
 
-  // 4. 表示用の配列：リーダーを先頭にして合体
-  const sortedParticipants = leader ? [leader, ...otherPlayers] : otherPlayers;
+// リーダーとそれ以外を分ける
+const leader = players.find(p => String(p.is_Leader) === "true");
+const otherPlayers = players.filter(p => p.user_id !== leader?.user_id);
+
+// リーダーがいれば先頭、いなければ全員をそのまま
+const sortedParticipants = leader ? [leader, ...otherPlayers] : players;
 
   return (
     <div className="mb-6 flex-1 overflow-y-auto">

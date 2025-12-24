@@ -8,7 +8,7 @@ const gameWs = ws.link(`${WS_BASE_URL}/api/rooms/:room_id/ws`);
 
 export const handlers = [
   // --- 1. Room関連 (HTTP) ---
-  http.post('http://localhost:8080/api/rooms', async () => {
+  http.post('/api/rooms', async () => {
     console.log("MSW: Intercepted /api/rooms!");
     await delay(500);
     return HttpResponse.json({
@@ -20,7 +20,7 @@ export const handlers = [
     }, { status: 201 });
   }),
 
-  http.post('http://localhost:8080/api/user', async ({ request }) => {
+  http.post('/api/user', async ({ request }) => {
     const body = await request.json() as any;
     await delay(500);
     if (body.room_code === "ERROR") return new HttpResponse(null, { status: 404 });
@@ -29,6 +29,11 @@ export const handlers = [
       "user_id": "bb",
       "is_leader": true,
     }, { status: 200 });
+  }),
+
+  http.post('/api/rooms/:room_id/start', async () => {
+    console.log("MSW: Intercepted /api/rooms/start!");
+    return HttpResponse.json({ status: "success" }, { status: 200 });
   }),
 
   // --- 2. WebSocketのモック (gameWs.addEventListener をそのまま入れる) ---
@@ -66,6 +71,16 @@ export const handlers = [
     client.addEventListener('message', (event) => {
       console.log('[MSW] WSメッセージ受信:', event.data);
       const data = JSON.parse(event.data as string);
+
+      if (data.type === 'START_GAME') {
+        client.send(JSON.stringify({
+          type: 'STATE_UPDATE',
+          payload: {
+            // frontendの GameState.SETTING_TOPIC が "setting_topic" であると仮定
+            nextState: "setting_topic", 
+          }
+        }))
+      }
 
       // ホストがトピックを決定した時
       if (data.type === 'SUBMIT_TOPIC' || data.type === 'START_GAME') {

@@ -1,7 +1,7 @@
 // lib/api.ts
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+const API_BASE_URL = ""; 
+const WS_BASE_URL = "ws://localhost:8080";
 
 //FIX: API設計に合わせて、StartGame削除
 export const api = {
