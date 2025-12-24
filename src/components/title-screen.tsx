@@ -3,11 +3,25 @@
 import {GameButton} from './game-button'
 import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { useRouter } from "next/navigation"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
 export default function TitleScreen() {
   const router = useRouter()
+   const { 
+    createRoom,
+    globalError,
+  } = useRoomData();
   
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async() => {
+     try {
+      console.log("[v0] Starting game for room:")
+      await createRoom();      
+    } catch (error) {
+      console.error("Error starting game:", error)
+      alert("Failed to start game")
+    }
     router.push("/create-room")
   }
 
