@@ -30,7 +30,7 @@ export default function JoinRoom() {
     const newRoomId = await joinRoom(roomCode, userName);
     
     if (newRoomId) {
-      router.push(`/room/${newRoomId}/discussion-time`);
+      router.push(`/room/${newRoomId}/waiting-start-game`);
     } else {
       console.error("Room ID was not returned from joinRoom");
     }

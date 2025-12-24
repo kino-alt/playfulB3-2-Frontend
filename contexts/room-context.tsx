@@ -116,11 +116,24 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   // 1.3 回答の提出 (POST /api/rooms/${room_id}/answer)
   const submitAnswer = useCallback(async (answer: string) => {
     if (!state.roomId || !state.myUserId || !state.isLeader) return;
-    await api.submitAnswer(state.roomId, state.myUserId, answer);
-    setState(prev => ({
-        ...prev,
-        answer: answer,
-    }));
+  
+    try {
+      await api.submitAnswer(state.roomId, state.myUserId, answer);
+      
+      setState(prev => ({
+          ...prev,
+          answer: answer,
+      }));
+      const ws = (window as any).gameWs;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ 
+          type: 'ANSWERING', 
+          payload: { answer } 
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to submit answer:", error);
+    }
   }, [state.roomId, state.myUserId]); 
 
   // start game

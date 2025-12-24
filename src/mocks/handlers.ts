@@ -6,6 +6,7 @@ const WS_BASE_URL = "ws://localhost:8080";
 // 1. WebSocketリンクの作成
 const gameWs = ws.link(`${WS_BASE_URL}/api/rooms/:room_id/ws`);
 let timerInterval: NodeJS.Timeout | null = null;
+const allClients = new Set<any>();
 
 
 export const handlers = [
@@ -29,7 +30,7 @@ export const handlers = [
     return HttpResponse.json({
       "room_id": "abc",
       "user_id": "bb",
-      "is_leader": true,
+      "is_leader": false,
     }, { status: 200 });
   }),
 
@@ -54,103 +55,99 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
 
   // --- 2. WebSocketのモック (gameWs.addEventListener をそのまま入れる) ---
   gameWs.addEventListener('connection', ({ client }) => {
-    console.log('[MSW] WS接続確立:', client.id);
+    allClients.add(client);
+    console.log('[MSW] WS接続確立:', client.id, 'Total:', allClients.size);
 
-    // 参加者更新通知
-    setTimeout(() => {
-      client.send(JSON.stringify({
-        type: 'PARTICIPANT_UPDATE',
-        payload: {
-          participants: [
-            { user_id: "aa", user_name: "あかね", role: "host", is_Leader: "false" },
-            { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: "true" },
-            { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: "false" },
-            { user_id: "dummy3", user_name: "まなみ", role: "player", is_Leader: "false" },
-          ]
-        }
-      }));
-    }, 500);
+    // 🔴 全員に送信する関数を定義
+    const broadcast = (message: object) => {
+      const msgString = JSON.stringify(message);
+      allClients.forEach((c) => {
+        if (c.readyState === 1) c.send(msgString);
+      });
+    };
+
+    // 参加者リストの初期通知 (接続した瞬間に全員を更新)
+    broadcast({
+      type: 'PARTICIPANT_UPDATE',
+      payload: {
+        participants: [
+          { user_id: "aa", user_name: "ホスト", role: "host", is_Leader: "false" },
+          { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: "true" },
+          { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: "false" },
+        ]
+      }
+    });
 
     client.addEventListener('message', (event) => {
-      console.log('[MSW] WSメッセージ受信:', event.data);
       const data = JSON.parse(event.data as string);
+      console.log('[MSW] WSメッセージ受信:', data.type);
 
-      if (data.type === 'WAITING') {
-        client.send(JSON.stringify({
+      // 🔴 client.send をすべて broadcast に変更 🔴
+
+      if (data.type === 'WAITING' || data.type === 'START_GAME') {
+        broadcast({
           type: 'STATE_UPDATE',
-          payload: {
-            nextState: "setting_topic", 
-          }
-        }))
+          payload: { nextState: "setting_topic" }
+        });
         return;
       }
 
       if (data.type === 'CHECKING') {
-        client.send(JSON.stringify({
+        broadcast({
           type: 'STATE_UPDATE',
-          payload: {
-            nextState: "finished", 
-          }
-        }));
+          payload: { nextState: "finished" }
+        });
         return;
       }
 
-      // ホストがトピックを決定した時
+      if (data.type === 'ANSWERING') {
+        broadcast({
+          type: 'STATE_UPDATE',
+          payload: {
+            nextState: "checking",
+            data: { answer: data.payload.answer }
+          }
+        });
+        return;
+      }
+
       if (data.type === 'SUBMIT_TOPIC') {
-        // 🔴 1. 状態更新をブロードキャスト (プロパティ名を合わせる)
-        client.send(JSON.stringify({
+        broadcast({
           type: 'STATE_UPDATE',
           payload: {
             nextState: "discussing",
             data: {
               topic: data.payload.topic,
-              selected_emojis: data.payload.emojis, // Context側の selectedEmojis と合わせる
+              selected_emojis: data.payload.emojis,
               assignments: [
-                { user_id: "aa", emoji: "" },
+                { user_id: "aa", emoji: "🍎" },
+                { user_id: "bb", emoji: "🍇" },
                 { user_id: "dummy1", emoji: "🍎" },
-                { user_id: "dummy2", emoji: "🏢" },
-                { user_id: "dummy3", emoji: "👨" }
+                { user_id: "dummy2", emoji: "🏢" }
               ]
             }
           }
-        }));
+        });
 
-        // 🔴 タイマー処理: 5分(300秒)から開始
         if (timerInterval) clearInterval(timerInterval);
-        
         let seconds = 10; 
-
         timerInterval = setInterval(() => {
           seconds--;
           if (seconds < 0) {
-            if (timerInterval) clearInterval(timerInterval);
+            clearInterval(timerInterval!);
+            broadcast({ type: 'STATE_UPDATE', payload: { nextState: "answering" } });
             return;
           }
           const min = Math.floor(seconds / 60).toString().padStart(2, '0');
           const sec = (seconds % 60).toString().padStart(2, '0');
-
-          if (seconds <= 0) {
-            if (timerInterval) clearInterval(timerInterval);
-            
-            client.send(JSON.stringify({
-              type: 'STATE_UPDATE',
-              payload: {
-                nextState: "answering", 
-              }
-            }));
-            return;
-          }
-          
-          client.send(JSON.stringify({ 
-              type: 'TIMER_TICK', 
-              payload: { time: `${min}:${sec}` } 
-          }));
+          broadcast({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } });
         }, 1000);
       }
     });
 
     client.addEventListener('close', () => {
-      if (timerInterval) clearInterval(timerInterval);
+      allClients.delete(client);
+      if (allClients.size === 0 && timerInterval) clearInterval(timerInterval);
     });
   }),
 ];

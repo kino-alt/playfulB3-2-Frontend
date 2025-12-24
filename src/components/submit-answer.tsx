@@ -16,6 +16,7 @@ export default function SubmitAnswer() {
   const router = useRouter()
   const { 
       roomId,
+      roomCode,
       roomState,
       globalError,
       submitAnswer
@@ -23,8 +24,10 @@ export default function SubmitAnswer() {
 
   // push next page
   useEffect(() => {
-    if (roomState === GameState.CHECKING && roomId) {
-         router.push(`/room/${roomId}/review-answer`);
+   console.log("Current Room State:", roomState); // デバッグ用
+    if (roomState === GameState.CHECKING && roomCode) {
+      console.log("Navigating to review-answer...");
+      router.push(`/room/${roomId}/review-answer`);
     }
   }, [roomState, roomId, router])
 

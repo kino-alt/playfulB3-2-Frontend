@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
-
+import Image from "next/image"
 
 export function DiscussionTime() {
   const [showHintOverlay, setShowHintOverlay] = useState(true)
@@ -87,15 +87,16 @@ export function DiscussionTime() {
         <div className="w-full flex justify-center mt-4 mb-4">
             <div className="relative w-full max-w-[280px] h-[250px] flex items-center justify-center">
                 
-                <img 
+                <Image
                     src="/images/speech_bubble.png"
                     alt="Speech Bubble"
+                    fill
                     className="absolute inset-0 w-full h-full object-contain"
                 />
               
                 <div className="absolute inset-0 flex items-center justify-center transform translate-y-[-15px]">
                     <p className="text-8xl font-bold">
-                        {AssignedEmoji || ""}
+                        {AssignedEmoji || "🍎"}
                     </p>
                 </div>
                 
