@@ -12,18 +12,22 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
         switch (type) {
             //state update handler
             case 'STATE_UPDATE':
-                const { nextState, data } = payload;
+                const { nextState, data: payloadData } = payload;
+                
                 setState(prev => {
                     let newState = { ...prev, roomState: nextState as GameState, globalError: null };
 
-                    if (data) {
-                        if (data.topic !== undefined) newState.topic = data.topic;
-                        if (data.selected_emojis !== undefined) newState.selectedEmojis = data.selected_emojis;
+                    if (payloadData) {
+                        if (payloadData.topic !== undefined) newState.topic = payloadData.topic;
+                        // サーバー側が selected_emojis (snake_case) で送ってくるのでマッピング
+                        if (payloadData.selected_emojis !== undefined) {
+                            newState.selectedEmojis = payloadData.selected_emojis;
+                        }
                     }
 
                     // discussing state data update
-                    if (nextState === GameState.DISCUSSING && data) {
-                        const assignments = data.assignments || []; 
+                    if (nextState === GameState.DISCUSSING && payloadData) {
+                        const assignments = payloadData.assignments || []; 
 
                         //convert assignments array to map for easy lookup
                         const assignmentsMap: Record<string, string> = assignments.reduce((acc: Record<string, string>, assignment: any) => {

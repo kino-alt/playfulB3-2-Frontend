@@ -5,6 +5,8 @@ const WS_BASE_URL = "ws://localhost:8080";
 
 // 1. WebSocketリンクの作成
 const gameWs = ws.link(`${WS_BASE_URL}/api/rooms/:room_id/ws`);
+let timerInterval: NodeJS.Timeout | null = null;
+
 
 export const handlers = [
   // --- 1. Room関連 (HTTP) ---
@@ -63,19 +65,6 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
       }));
     }, 500);
 
-    // タイマー
-    let seconds = 160;
-    const timerInterval = setInterval(() => {
-      if (seconds <= 0) {
-        clearInterval(timerInterval);
-        return;
-      }
-      seconds--;
-      const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-      const sec = (seconds % 60).toString().padStart(2, '0');
-      client.send(JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } }));
-    }, 1000);
-
     client.addEventListener('message', (event) => {
       console.log('[MSW] WSメッセージ受信:', event.data);
       const data = JSON.parse(event.data as string);
@@ -92,11 +81,14 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
 
       // ホストがトピックを決定した時
       if (data.type === 'SUBMIT_TOPIC') {
+        // 🔴 1. 状態更新をブロードキャスト (プロパティ名を合わせる)
         client.send(JSON.stringify({
           type: 'STATE_UPDATE',
           payload: {
-            nextState: "discussing", 
+            nextState: "discussing",
             data: {
+              topic: data.payload.topic,
+              selected_emojis: data.payload.emojis, // Context側の selectedEmojis と合わせる
               assignments: [
                 { user_id: "aa", emoji: "" },
                 { user_id: "dummy1", emoji: "🍎" },
@@ -106,13 +98,31 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
             }
           }
         }));
-        return;
+
+        // 🔴 タイマー処理: 5分(300秒)から開始
+        if (timerInterval) clearInterval(timerInterval);
+        
+        let seconds = 300; 
+
+        timerInterval = setInterval(() => {
+          seconds--;
+          if (seconds < 0) {
+            if (timerInterval) clearInterval(timerInterval);
+            return;
+          }
+          const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+          const sec = (seconds % 60).toString().padStart(2, '0');
+          
+          client.send(JSON.stringify({ 
+              type: 'TIMER_TICK', 
+              payload: { time: `${min}:${sec}` } 
+          }));
+        }, 1000);
       }
     });
 
     client.addEventListener('close', () => {
-      console.log('[MSW] WS接続終了');
-      clearInterval(timerInterval);
+      if (timerInterval) clearInterval(timerInterval);
     });
   }),
 ];

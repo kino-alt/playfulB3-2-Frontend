@@ -14,16 +14,16 @@ import { GameState } from "@/contexts/types";
 
 export function WaitingDiscussionTime() {
     const router = useRouter()
-      const { 
-        roomId,
-        roomCode,
-        theme,
-        topic,
-        selectedEmojis,
-        maxEmojis,
-        timer,
-        roomState,
-        globalError,
+    const { 
+      roomId,
+      roomCode,
+      theme,
+      topic,
+      selectedEmojis,
+      maxEmojis,
+      timer,
+      roomState,
+      globalError,
     } = useRoomData();
 
     // push next page
@@ -72,6 +72,7 @@ export function WaitingDiscussionTime() {
                 selectedEmojis={selectedEmojis}
                 handleRemoveEmoji={() => {}}
                 maxEmojis={maxEmojis}
+                roomState={roomState}
             />    
         </div>
         </EmojiBackgroundLayout>

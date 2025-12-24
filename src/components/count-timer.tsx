@@ -11,7 +11,7 @@ export function CountTimer({ timervalue }: CountTimerProps) {
     <>
       {/* Timer Display */}
       <TextInput
-        value={timervalue || "00:00"}
+        value={timervalue || "05:00"}
         onChange={() => {}}
         inputtitle=""
         placeholder=""

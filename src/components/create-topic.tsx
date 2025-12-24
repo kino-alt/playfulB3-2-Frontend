@@ -183,6 +183,7 @@ export function CreateTopic() {
           selectedEmojis={localSelectedEmojis}
           handleRemoveEmoji={handleRemoveEmoji}
           maxEmojis={maxEmojis}
+          roomState={roomState}
         />
 
         {/*submit button*/}
