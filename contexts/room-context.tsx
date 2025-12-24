@@ -118,15 +118,31 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   // start game
   const startGame = useCallback(async () => {
     if (!state.roomId || !amIHost) return;
-    await api.startGame(state.roomId); 
-    // サーバーからの STATE_UPDATE を待つ
-  }, [state.roomId,state.participantsList, state.myUserId]);
+    
+    try {
+      await api.startGame(state.roomId); 
+      const ws = (window as any).gameWs; 
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'START_GAME' }));
+      }
+    } catch (error) {
+      console.error("Failed to start game:", error);
+    }
+  }, [state.roomId, amIHost]);
 
   //finish room
   const finishRoom = useCallback(async () => {
     if (!state.roomId || !amIHost) return;
-    await api.finishRoom(state.roomId); 
-    // サーバーからの STATE_UPDATE を待つ
+
+    try {
+      await api.finishRoom(state.roomId); 
+      const ws = (window as any).gameWs; 
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'FINISHED' }));
+      }
+    } catch (error) {
+      console.error("Failed to finish room:", error);
+    }
   }, [state.roomId,state.participantsList, state.myUserId]);
 
   // WebSocket ---------------------------------

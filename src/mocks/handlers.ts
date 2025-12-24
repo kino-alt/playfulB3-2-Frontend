@@ -31,10 +31,12 @@ export const handlers = [
     }, { status: 200 });
   }),
 
-  http.post('/api/rooms/:room_id/start', async () => {
-    console.log("MSW: Intercepted /api/rooms/start!");
-    return HttpResponse.json({ status: "success" }, { status: 200 });
-  }),
+http.post('/api/rooms/:room_id/start', async ({ params }) => {
+  // どの部屋のIDでリクエストが来たかログに出す
+  console.log(`[MSW] Intercepted startGame for room: ${params.room_id}`);
+  await delay(200);
+  return HttpResponse.json({ status: "success" }, { status: 200 });
+}),
 
   // --- 2. WebSocketのモック (gameWs.addEventListener をそのまま入れる) ---
   gameWs.addEventListener('connection', ({ client }) => {
@@ -72,18 +74,18 @@ export const handlers = [
       console.log('[MSW] WSメッセージ受信:', event.data);
       const data = JSON.parse(event.data as string);
 
-      if (data.type === 'START_GAME') {
+      if (data.type === 'WAITING') {
         client.send(JSON.stringify({
           type: 'STATE_UPDATE',
           payload: {
-            // frontendの GameState.SETTING_TOPIC が "setting_topic" であると仮定
             nextState: "setting_topic", 
           }
         }))
+        return;
       }
 
       // ホストがトピックを決定した時
-      if (data.type === 'SUBMIT_TOPIC' || data.type === 'START_GAME') {
+      if (data.type === 'SUBMIT_TOPIC') {
         client.send(JSON.stringify({
           type: 'STATE_UPDATE',
           payload: {
@@ -98,6 +100,7 @@ export const handlers = [
             }
           }
         }));
+        return;
       }
     });
 

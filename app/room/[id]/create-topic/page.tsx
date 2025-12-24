@@ -1,5 +1,4 @@
 import { CreateTopic } from "@/src/components/create-topic"
-import { RoomProvider } from '@/contexts/room-context';
 
 export default async function CreateTopicPage({
   params,
@@ -9,8 +8,6 @@ export default async function CreateTopicPage({
   const { id } = params
 
 return(
-  <RoomProvider initialRoomId={id}>
     <CreateTopic  />
-  </RoomProvider>
 )
 }

@@ -106,6 +106,10 @@ export const api = {
   connectWebSocket: (roomId: string, onMessage: (data: any) => void) => {
     const ws = new WebSocket(`${WS_BASE_URL}/api/rooms/${roomId}/ws`);
 
+    if (typeof window !== 'undefined') {
+    (window as any).gameWs = ws;
+  }
+
     ws.onopen = () => {
       console.log("[WS] Connected:", roomId);
     };
