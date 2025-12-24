@@ -41,13 +41,14 @@ export const handlers = [
         type: 'PARTICIPANT_UPDATE',
         payload: {
           participants: [
-            { user_id: "bb", user_name: "あかね", role: "player", is_Leader: "true" },
-            { user_id: "cc", user_name: "たいよう", role: "player", is_Leader: "false" },
-            { user_id: "dd", user_name: "しょう", role: "player", is_Leader: "false" }
+            { user_id: "aa", user_name: "あかね", role: "host", is_Leader: "false" },
+            { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: "true" },
+            { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: "false" },
+            { user_id: "dummy3", user_name: "まなみ", role: "player", is_Leader: "false" },
           ]
         }
       }));
-    }, 1000);
+    }, 500);
 
     // タイマー
     let seconds = 160;
@@ -64,7 +65,25 @@ export const handlers = [
 
     client.addEventListener('message', (event) => {
       console.log('[MSW] WSメッセージ受信:', event.data);
-      // メッセージ応答ロジック...
+      const data = JSON.parse(event.data as string);
+
+      // ホストがトピックを決定した時
+      if (data.type === 'SUBMIT_TOPIC' || data.type === 'START_GAME') {
+        client.send(JSON.stringify({
+          type: 'STATE_UPDATE',
+          payload: {
+            nextState: "discussing", // Context内のGameStateの定義に合わせてください
+            data: {
+              assignments: [
+                { user_id: "aa", emoji: "" },
+                { user_id: "dummy1", emoji: "🍎" },
+                { user_id: "dummy2", emoji: "🏢" },
+                { user_id: "dummy3", emoji: "👨" }
+              ]
+            }
+          }
+        }));
+      }
     });
 
     client.addEventListener('close', () => {
