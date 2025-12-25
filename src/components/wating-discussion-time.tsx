@@ -31,7 +31,7 @@ export function WaitingDiscussionTime() {
       console.log("Current Room State:", roomState); // デバッグ用
       if (roomState === GameState.ANSWERING && roomCode) {
         console.log("Navigating to discussion-time...");
-        router.push(`/room/${roomId}/review-answer`);
+        router.push(`/room/${roomId}/waiting-answer`);
       }
     }, [roomState, roomId, router])
 

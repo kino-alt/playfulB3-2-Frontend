@@ -8,178 +8,252 @@ const WS_BASE_URL = typeof window !== 'undefined'
 // 1. WebSocketリンクの作成
 const gameWs = ws.link(`${WS_BASE_URL}/api/rooms/:room_id/ws`);
 let timerInterval: NodeJS.Timeout | null = null;
-const allClients = new Set<any>();
 
-const broadcast = (message: object) => {
-  const msgString = JSON.stringify(message);
-  
-  allClients.forEach((client) => {
-    // 🔴 接続が OPEN (1) 以外なら即削除して送信をスキップ
-    if (client.readyState !== 1) {
-      allClients.delete(client);
-      return;
-    }
+// 🔴 グローバル参加者リスト（初期値は空）
+let currentParticipants: Array<{user_id: string, user_name: string, role: string, is_Leader: boolean}> = [];
 
-    try {
-      client.send(msgString);
-    } catch (e) {
-      console.error("[MSW] Send failed, removing client", e);
-      allClients.delete(client);
-    }
-  });
+// 🔴 グローバルゲームデータ（トピック、答え、選択絵文字など）
+let gameData: {
+  topic: string | null;
+  emojis: string[];
+  answer: string | null;
+  theme: string | null;
+  hint: string | null;
+} = {
+  topic: null,
+  emojis: [],
+  answer: null,
+  theme: "人物",
+  hint: "出身地、性別、やったこと",
 };
 
-let currentParticipants = [
-  { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: false },
-  { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: false },
-];
+// localStorage から参加者リストを取得（クロスブラウザ同期用）
+const loadParticipantsFromStorage = () => {
+  try {
+    const stored = localStorage.getItem('playful-mock-participants');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      console.log("[MSW] 📦 Loaded from localStorage:", parsed.map((p: any) => p.user_name).join(', '));
+      return parsed;
+    }
+  } catch (e) {
+    console.error("[MSW] Failed to load from localStorage:", e);
+  }
+  return [];
+};
+
+// localStorage に参加者リストを保存（クロスブラウザ同期用）
+const saveParticipantsToStorage = (participants: typeof currentParticipants) => {
+  try {
+    localStorage.setItem('playful-mock-participants', JSON.stringify(participants));
+    console.log("[MSW] 💾 Saved to localStorage:", participants.map(p => p.user_name).join(', '));
+    // 🔴 他のタブ/ウィンドウに変更を通知
+    syncChannel.postMessage({ type: 'PARTICIPANTS_UPDATED' });
+    console.log("[MSW] 📡 Notified other windows/tabs");
+  } catch (e) {
+    console.error("[MSW] Failed to save to localStorage:", e);
+  }
+};
+
+// デバッグ用：currentParticipants の変更を追跡
+const setParticipants = (newList: typeof currentParticipants, source: string) => {
+  console.log(`[MSW] setParticipants called from: ${source}`);
+  console.log(`[MSW] Old participants:`, currentParticipants.map(p => p.user_name).join(', '));
+  console.log(`[MSW] New participants:`, newList.map(p => p.user_name).join(', '));
+  currentParticipants = newList;
+  saveParticipantsToStorage(newList);  // Always sync to localStorage
+};
 
 const broadcastParticipants = () => {
-  console.log("[MSW] Broadcasting updated list:", currentParticipants);
-  broadcast({
-    type: 'PARTICIPANT_UPDATE',
-    payload: {
-      participants: currentParticipants
+  const listSnapshot = [...currentParticipants];
+  console.log("[MSW] Broadcasting updated list (clients:", gameWs.clients.size, "), participants:", listSnapshot.map(p => p.user_name).join(', '));
+  gameWs.broadcast(
+    JSON.stringify({
+      type: 'PARTICIPANT_UPDATE',
+      payload: { participants: listSnapshot },
+    })
+  );
+};
+
+// 🔴 BroadcastChannel でクロスブラウザ同期
+const syncChannel = new BroadcastChannel('playful-mock-sync');
+syncChannel.onmessage = (event) => {
+  if (event.data.type === 'PARTICIPANTS_UPDATED') {
+    console.log("[MSW] 📡 Received sync from another window/tab");
+    const updatedList = loadParticipantsFromStorage();
+    if (updatedList.length > 0) {
+      currentParticipants = updatedList;
+      console.log("[MSW] 🔄 Synced participants:", currentParticipants.map(p => p.user_name).join(', '));
+      broadcastParticipants(); // WebSocket broadcast to all connected clients
     }
-  });
+  }
 };
 
 
-// Register WebSocket connection handler on the ws.link instance
-gameWs.addEventListener('connection', ({ client }) => {
-  allClients.add(client);
-  console.log("[MSW] New Connection. Total:", allClients.size);
-
-  // 🔴 誰かが入室（接続）したら、即座に最新のリストを全員（ホスト含む）に送る
-  setTimeout(() => {
-    broadcastParticipants();
-  }, 500);
-
-  client.addEventListener('message', (event) => {
-    // 🔴 受信自体ができているかログを出す
-    console.log("[MSW] Received message from client:", event.data);
-    
-    const data = JSON.parse(event.data as string);
-    if (data.type === 'FETCH_PARTICIPANTS') {
-      console.log("[MSW] Manual fetch requested");
-      broadcastParticipants();
-    }
-
-    if (data.type === 'WAITING') {
-      broadcast({
-        type: 'STATE_UPDATE',
-        payload: { nextState: "setting_topic" }
-      });
-      return;
-    }
-
-    if (data.type === 'CHECKING') {
-      broadcast({
-        type: 'STATE_UPDATE',
-        payload: { nextState: "finished" }
-      });
-      return;
-    }
-
-    if (data.type === 'ANSWERING') {
-      broadcast({
-        type: 'STATE_UPDATE',
-        payload: {
-          nextState: "checking",
-          data: { answer: data.payload.answer }
-        }
-      });
-      return;
-    }
-
-    if (data.type === 'SUBMIT_TOPIC') {
-      broadcast({
-        type: 'STATE_UPDATE',
-        payload: {
-          nextState: "discussing",
-          data: {
-            topic: data.payload.topic,
-            selected_emojis: data.payload.emojis,
-            assignments: [
-              { user_id: "aa", emoji: "🍎" },
-              { user_id: "bb", emoji: "🍎" },
-              { user_id: "dummy1", emoji: "👨" },
-              { user_id: "dummy2", emoji: "🏢" }
-            ]
-          }
-        }
-      });
-
-      if (timerInterval) clearInterval(timerInterval);
-      let seconds = 10; 
-      timerInterval = setInterval(() => {
-        seconds--;
-        if (seconds < 0) {
-          clearInterval(timerInterval!);
-          broadcast({ type: 'STATE_UPDATE', payload: { nextState: "answering" } });
-          return;
-        }
-        const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const sec = (seconds % 60).toString().padStart(2, '0');
-        broadcast({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } });
-      }, 1000);
-    }
-  });
-
-  client.addEventListener('close', () => {
-    allClients.delete(client);
-    if (allClients.size === 0 && timerInterval) clearInterval(timerInterval);
-  });
-});
+// (Removed duplicate gameWs connection handler defined outside handlers array)
 
 export const handlers = [
   // --- 1. Room関連 (HTTP) ---
   http.post('/api/rooms', async () => {
   console.log("MSW: Intercepted /api/rooms!");
-  const hostUser = { user_id: "aa", user_name: "ホスト(あなた)", role: "host", is_Leader: true };
-  // ルーム作成時はリストをリセット（テストしやすくするため）
-  currentParticipants = [
-    hostUser,
+  
+  // 🔴 新しいルーム作成時は localStorage をクリアして初期化
+  console.log("[MSW] 🗑️ Clearing old room data");
+  localStorage.removeItem('playful-mock-participants');
+  
+  // 🔴 ゲームデータもリセット
+  gameData = {
+    topic: null,
+    emojis: [],
+    answer: null,
+    theme: "人物",
+    hint: "出身地、性別、やったこと",
+  };
+  
+  const initial = [
+    { user_id: "aa", user_name: "ホスト(あなた)", role: "host", is_Leader: false },
     { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: false },
     { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: false },
   ];
+  
+  setParticipants(initial, "/api/rooms");
+  
   await delay(500);
- await delay(500);
   return HttpResponse.json({
     "room_id": "abc",
-    "user_id": "aa", // これが context の myUserId になる
+    "user_id": "aa",
     "room_code": "AAAAAA",
+    "theme": "人物",
+    "hint": "出身地、性別、やったこと",
   }, { status: 201 });
 }),
 
-http.post('/api/user', async ({ request }) => {
+  http.post('/api/user', async ({ request }) => {
+  console.log("[MSW] ====== /api/user called ======");
   const body = await request.json() as any;
   const newUserId = "bb-" + Math.random().toString(36).substring(2, 7);
 
-  // 🔴 参加者をリストに追加
-  currentParticipants.push({
-    user_id: newUserId,
-    user_name: body.user_name || "ゲスト",
-    role: "player",
-    is_Leader: false, // 参加者はリーダーではない
-  });
+  // 🔴 クロスブラウザ同期対応：localStorage から参加者を読み込む
+  let participants = loadParticipantsFromStorage();
+  
+  // localStorage に無ければ初期リスト
+  if (participants.length === 0) {
+    participants = [
+      { user_id: "aa", user_name: "ホスト(あなた)", role: "host" as const, is_Leader: false },
+      { user_id: "dummy1", user_name: "たいよう", role: "player" as const, is_Leader: false },
+      { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
+    ];
+  }
+  
+  console.log("[MSW] Before join, current participants:", participants.map((p: any) => p.user_name).join(', '));
+
+  // 全員を一旦リーダー解除して、join した人をリーダーに設定
+  const updatedList = [
+    ...participants.map((p: any) => ({ ...p, is_Leader: false })),
+    {
+      user_id: newUserId,
+      user_name: body.user_name || "ゲスト",
+      role: "player" as const,
+      is_Leader: true,
+    }
+  ];
+  
+  setParticipants(updatedList, "/api/user");
+  console.log("[MSW] After join, participants:", currentParticipants.map(p => p.user_name).join(', '), "| Total:", currentParticipants.length);
+  console.log("[MSW] ====== /api/user completed (WS connection will trigger broadcast) ======");
 
   return HttpResponse.json({
-    "room_id": "abc",
-    "user_id": newUserId,
-    "is_leader": "false", // 設計書の string 型に合わせる
+    room_id: "abc",
+    user_id: newUserId,
+    is_leader: "true",
   }, { status: 200 });
 }),
 
-http.post('/api/rooms/:room_id/start', async ({ params }) => {
+  http.post('/api/rooms/:room_id/start', async ({ params }) => {
   // どの部屋のIDでリクエストが来たかログに出す
   console.log(`[MSW] Intercepted startGame for room: ${params.room_id}`);
   await delay(200);
   return HttpResponse.json({ status: "success" }, { status: 200 });
 }),
 
-http.post('/api/rooms/:room_id/topic', async ({ params }) => {
+  http.post('/api/rooms/:room_id/topic', async ({ params, request }) => {
     console.log(`[MSW] Intercepted submitTopic for room: ${params.room_id}`);
+    const body = await request.json() as any;
+    
+    // 🔴 topic と emojis を保存
+    gameData.topic = body.topic;
+    gameData.emojis = body.emojis || body.selected_emojis || [];
+    console.log("[MSW] Topic saved:", gameData.topic, "Emojis:", gameData.emojis);
+    
+    // 🔴 DISCUSSING 状態に遷移
+    setTimeout(() => {
+      gameWs.broadcast(
+        JSON.stringify({
+          type: 'STATE_UPDATE',
+          payload: {
+            nextState: "discussing",
+            data: {
+              topic: gameData.topic,
+              selected_emojis: gameData.emojis,
+              theme: gameData.theme,
+              hint: gameData.hint,
+              assignments: [
+                { user_id: "aa", emoji: "🍎" },
+                { user_id: "bb", emoji: "🍎" },
+                { user_id: "dummy1", emoji: "👨" },
+                { user_id: "dummy2", emoji: "🏢" }
+              ]
+            }
+          }
+        })
+      );
+      
+      // タイマー開始
+      if (timerInterval) clearInterval(timerInterval);
+      let seconds = 10;
+      timerInterval = setInterval(() => {
+        seconds--;
+        if (seconds < 0) {
+          clearInterval(timerInterval!);
+          // ANSWERING 状態に遷移する際にも data を送信
+          gameWs.broadcast(
+            JSON.stringify({
+              type: 'STATE_UPDATE',
+              payload: {
+                nextState: "answering",
+                data: {
+                  topic: gameData.topic,
+                  selected_emojis: gameData.emojis,
+                  theme: gameData.theme,
+                  hint: gameData.hint,
+                }
+              }
+            })
+          );
+          return;
+        }
+        const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const sec = (seconds % 60).toString().padStart(2, '0');
+        gameWs.broadcast(
+          JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } })
+        );
+      }, 1000);
+    }, 100);
+    
+    await delay(300);
+    return HttpResponse.json({ status: "success" }, { status: 200 });
+}),
+
+  http.post('/api/rooms/:room_id/answer', async ({ params, request }) => {
+    console.log(`[MSW] Intercepted submitAnswer for room: ${params.room_id}`);
+    const body = await request.json() as any;
+    console.log("[MSW] Answer submitted:", body);
+    
+    // 🔴 答えを保存（WebSocket の ANSWERING ハンドラが STATE_UPDATE を送信するので、ここでは HTTP レスポンスのみ）
+    gameData.answer = body.answer;
+    console.log("[MSW] Answer saved:", gameData.answer);
+    console.log("[MSW] Waiting for ANSWERING WS message to broadcast STATE_UPDATE...");
+    
     await delay(300);
     return HttpResponse.json({ status: "success" }, { status: 200 });
   }),
@@ -192,13 +266,19 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
 
   // --- 2. WebSocketのモック (gameWs.addEventListener をそのまま入れる) ---
   gameWs.addEventListener('connection', ({ client }) => {
-    allClients.add(client);
-    console.log("[MSW] New Connection. Total:", allClients.size);
+    console.log("[MSW] New Connection. Total clients:", gameWs.clients.size);
 
-    // 🔴 誰かが入室（接続）したら、即座に最新のリストを全員（ホスト含む）に送る
+    // 🔴 クロスブラウザ同期対応：接続時に localStorage から最新データを読み込む
+    const storedParticipants = loadParticipantsFromStorage();
+    if (storedParticipants.length > 0) {
+      setParticipants(storedParticipants, "NEW_CONNECTION");
+    }
+
+    // 🔴 接続完了後、少し待ってから最新リストを配信（新規参加者のための自動同期）
     setTimeout(() => {
+      console.log("[MSW] Auto-broadcast on connection to", gameWs.clients.size, "clients");
       broadcastParticipants();
-    }, 500);
+    }, 100);
 
     client.addEventListener('message', (event) => {
       // 🔴 受信自体ができているかログを出す
@@ -207,53 +287,120 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
       const data = JSON.parse(event.data as string);
       if (data.type === 'FETCH_PARTICIPANTS') {
         console.log("[MSW] Manual fetch requested");
+        // 🔴 クロスブラウザ同期対応：localStorage から読み込み
+        let participants = loadParticipantsFromStorage();
+        if (participants.length === 0) {
+          // Initialize if empty
+          participants = [
+            { user_id: "aa", user_name: "ホスト(あなた)", role: "host" as const, is_Leader: false },
+            { user_id: "dummy1", user_name: "たいよう", role: "player" as const, is_Leader: false },
+            { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
+          ];
+        }
+        setParticipants(participants, "FETCH_PARTICIPANTS");
         broadcastParticipants();
       }
 
+      if (data.type === 'CLIENT_CONNECTED') {
+        console.log("[MSW] CLIENT_CONNECTED - Re-broadcasting to sync all clients");
+        // 接続があったら全クライアントに最新の参加者リストをブロードキャスト
+        broadcastParticipants();
+      }
+
+      if (data.type === 'JOIN_USER') {
+        console.log("[MSW] JOIN_USER - New user joining:", data.payload);
+        const { user_id, user_name } = data.payload;
+        // 参加者をリストに追加（既に存在する場合はスキップ）
+        const exists = currentParticipants.some(p => p.user_id === user_id);
+        if (!exists) {
+          currentParticipants.push({
+            user_id,
+            user_name,
+            role: "player" as const,
+            is_Leader: true,
+          });
+          console.log("[MSW] User added, broadcasting updated list with", currentParticipants.length, "participants");
+          broadcastParticipants();
+        }
+      }
+
       if (data.type === 'WAITING') {
-        broadcast({
-          type: 'STATE_UPDATE',
-          payload: { nextState: "setting_topic" }
-        });
+        gameWs.broadcast(
+          JSON.stringify({
+            type: 'STATE_UPDATE',
+            payload: { nextState: "setting_topic" }
+          })
+        );
         return;
       }
 
       if (data.type === 'CHECKING') {
-        broadcast({
-          type: 'STATE_UPDATE',
-          payload: { nextState: "finished" }
-        });
+        gameWs.broadcast(
+          JSON.stringify({
+            type: 'STATE_UPDATE',
+            payload: { nextState: "finished" }
+          })
+        );
         return;
       }
 
       if (data.type === 'ANSWERING') {
-        broadcast({
-          type: 'STATE_UPDATE',
-          payload: {
-            nextState: "checking",
-            data: { answer: data.payload.answer }
-          }
+        // 🔴 ANSWERING メッセージから answer と topic/emojis を取得（クロスウィンドウ対応）
+        gameData.answer = data.payload.answer;
+        if (data.payload.topic) gameData.topic = data.payload.topic;
+        if (data.payload.selected_emojis) gameData.emojis = data.payload.selected_emojis;
+        if (data.payload.theme) gameData.theme = data.payload.theme;
+        if (data.payload.hint) gameData.hint = data.payload.hint;
+        
+        console.log("[MSW] ANSWERING - Updated gameData:", {
+          topic: gameData.topic,
+          answer: gameData.answer,
+          selected_emojis: gameData.emojis,
         });
+        
+        // 🔴 全データを含めて CHECKING 状態に遷移
+        gameWs.broadcast(
+          JSON.stringify({
+            type: 'STATE_UPDATE',
+            payload: {
+              nextState: "checking",
+              data: {
+                topic: gameData.topic,
+                answer: gameData.answer,
+                selected_emojis: gameData.emojis,
+                theme: gameData.theme,
+                hint: gameData.hint,
+              }
+            }
+          })
+        );
         return;
       }
 
       if (data.type === 'SUBMIT_TOPIC') {
-        broadcast({
-          type: 'STATE_UPDATE',
-          payload: {
-            nextState: "discussing",
-            data: {
-              topic: data.payload.topic,
-              selected_emojis: data.payload.emojis,
-              assignments: [
-                { user_id: "aa", emoji: "🍎" },
-                { user_id: "bb", emoji: "🍎" },
-                { user_id: "dummy1", emoji: "👨" },
-                { user_id: "dummy2", emoji: "🏢" }
-              ]
+        // 🔴 トピックと絵文字を保存
+        gameData.topic = data.payload.topic;
+        gameData.emojis = data.payload.emojis;
+        console.log("[MSW] Topic saved:", gameData.topic, "Emojis:", gameData.emojis);
+        
+        gameWs.broadcast(
+          JSON.stringify({
+            type: 'STATE_UPDATE',
+            payload: {
+              nextState: "discussing",
+              data: {
+                topic: data.payload.topic,
+                selected_emojis: data.payload.emojis,
+                assignments: [
+                  { user_id: "aa", emoji: "🍎" },
+                  { user_id: "bb", emoji: "🍎" },
+                  { user_id: "dummy1", emoji: "👨" },
+                  { user_id: "dummy2", emoji: "🏢" }
+                ]
+              }
             }
-          }
-        });
+          })
+        );
 
         if (timerInterval) clearInterval(timerInterval);
         let seconds = 10; 
@@ -261,19 +408,23 @@ http.post('/api/rooms/:room_id/topic', async ({ params }) => {
           seconds--;
           if (seconds < 0) {
             clearInterval(timerInterval!);
-            broadcast({ type: 'STATE_UPDATE', payload: { nextState: "answering" } });
+            gameWs.broadcast(
+              JSON.stringify({ type: 'STATE_UPDATE', payload: { nextState: "answering" } })
+            );
             return;
           }
           const min = Math.floor(seconds / 60).toString().padStart(2, '0');
           const sec = (seconds % 60).toString().padStart(2, '0');
-          broadcast({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } });
+          gameWs.broadcast(
+            JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } })
+          );
         }, 1000);
       }
     });
 
     client.addEventListener('close', () => {
-      allClients.delete(client);
-      if (allClients.size === 0 && timerInterval) clearInterval(timerInterval);
+      if (gameWs.clients.size === 0 && timerInterval) clearInterval(timerInterval);
     });
   }),
+  gameWs
 ];

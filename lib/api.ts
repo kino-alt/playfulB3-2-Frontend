@@ -52,7 +52,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         topic,
-        emoji,
+        emojis: emoji,
       }),
     });
 
@@ -105,28 +105,67 @@ export const api = {
    *  WebSocket connect
    *  ws://.../api/rooms/{room_id}/ws
    *  ------------------------------- */
-  connectWebSocket: (roomId: string, onMessage: (data: any) => void) => {
+  connectWebSocket: (roomId: string, onMessage: (data: any) => void, userId?: string, userName?: string) => {
     if (!roomId) return { close: () => {} } as any;
 
     const url = `${WS_BASE_URL}/api/rooms/${roomId}/ws`;
     const ws = new WebSocket(url);
 
-    // 🔴 修正：addEventListener ではなく .onmessage プロパティを直接使う
-    // これが最も確実に MSW からのメッセージをキャッチできます
     ws.onmessage = (event) => {
-      console.log(">>> WS RAW DATA RECEIVED:", event.data);
-      try {
-        const data = JSON.parse(event.data);
-        if (onMessage) onMessage(data);
-      } catch (err) {
-        console.error("[WS] Parse Error:", err);
+      console.log(">>> RECEIVED IN API.TS:", event.data);
+      const raw = event.data as any;
+
+      const dispatch = (data: any) => {
+        try {
+          if (onMessage) onMessage(data);
+        } catch (e) {
+          console.error("[WS] onMessage handler error:", e);
+        }
+      };
+
+      if (typeof raw === 'string') {
+        try {
+          dispatch(JSON.parse(raw));
+        } catch (e) {
+          console.error('[WS] JSON.parse failed (string):', e, raw);
+        }
+        return;
       }
+
+      // Blob payload (Safari/MSW variations)
+      if (typeof Blob !== 'undefined' && raw instanceof Blob) {
+        raw.text()
+          .then((text: string) => {
+            try {
+              dispatch(JSON.parse(text));
+            } catch (e) {
+              console.error('[WS] JSON.parse failed (blob):', e, text);
+            }
+          })
+          .catch((e: any) => console.error('[WS] Blob.text() failed:', e));
+        return;
+      }
+
+      // Already an object (MSW may dispatch object events)
+      if (raw && typeof raw === 'object') {
+        dispatch(raw);
+        return;
+      }
+
+      console.warn('[WS] Unknown data type, forwarding raw:', typeof raw);
+      dispatch({ type: 'UNKNOWN', payload: raw });
     };
 
     ws.onopen = () => {
       console.log("[WS] Connection Opened");
-      // 接続時にデータを要求する（これは正しいです）
+      // 接続時にデータを要求する
       ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
+      
+      // 🔴 参加者の場合、ユーザー情報を送信してサーバー側に登録させる
+      if (userId && userName) {
+        console.log("[WS] Sending JOIN_USER:", userId, userName);
+        ws.send(JSON.stringify({ type: 'JOIN_USER', payload: { user_id: userId, user_name: userName } }));
+      }
     };
 
     ws.onerror = (err) => console.log("[WS] Error", err);

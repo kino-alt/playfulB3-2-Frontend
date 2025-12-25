@@ -8,8 +8,7 @@ interface ParticipantListProps {
 export function ParticipantList({ participants }: ParticipantListProps) {
   console.log("ParticipantList Received:", participants);
   // ホストを除外する
-  //const players = participants.filter(p => p.role !== 'host');
-  const players = participants;
+  const players = participants.filter(p => p.role !== 'host');
 
   // リーダー（回答者）を探す
   const leader = players.find(p => String(p.is_Leader) === "true" || p.is_Leader === true);

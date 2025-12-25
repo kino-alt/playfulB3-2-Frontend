@@ -1,9 +1,9 @@
-// src/mocks/browser.ts
 import { setupWorker } from 'msw/browser'
 import { handlers } from './handlers'
 
-// これがブラウザ用のMSW実行インスタンスになります
-export const worker = setupWorker(...handlers)
+// 🔴 handlers 配列を強制的に互換性のある型として展開します
+export const worker = setupWorker(...(handlers as any))
+
 worker.start({
-  onUnhandledRequest: 'bypass', // モックしていないリクエスト（Next.jsの静的ファイル等）はスルーする
+  onUnhandledRequest: 'bypass',
 })

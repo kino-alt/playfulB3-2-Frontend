@@ -130,9 +130,16 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       }));
       const ws = (window as any).gameWs;
       if (ws && ws.readyState === WebSocket.OPEN) {
+        // 🔴 ANSWERING メッセージに topic と selectedEmojis も含める（クロスウィンドウ対応）
         ws.send(JSON.stringify({ 
           type: 'ANSWERING', 
-          payload: { answer } 
+          payload: { 
+            answer,
+            topic: state.topic,
+            selected_emojis: state.selectedEmojis,
+            theme: state.theme,
+            hint: state.hint,
+          } 
         }));
       }
     } catch (error) {
@@ -172,25 +179,50 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
 
   // WebSocket ---------------------------------
  useEffect(() => {
-    if (state.roomId) {
+    if (state.roomId && state.myUserId) {
+        console.log("[Context] Opening WebSocket for roomId:", state.roomId, "userId:", state.myUserId);
       // 🔴 直接 handleWS を渡さず、Ref を経由した無名関数を渡す
       // これにより、handleWS が変わっても useEffect が再実行（切断）されなくなります
-      const ws = api.connectWebSocket(state.roomId, (data) => handlerRef.current(data)); 
+        const ws = api.connectWebSocket(state.roomId, (data) => {
+          console.log("[Context] onMessage received:", data);
+          handlerRef.current(data);
+      }, state.myUserId, state.roomCode || "ゲスト");  // 🔴 userId と userName を渡す
 
-      const fetchTimer = setInterval(() => { // 🔴 一度きりでなく、リストが空の間は送るように変更
-      if (ws.readyState === WebSocket.OPEN && state.participantsList.length === 0) {
-        console.log("[Context] Periodic Fetch Request...");
-        ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
-      }
-    }, 3000);
+      // 🔴 定期的に最新の参加者リストを取得（3秒ごと）
+      const fetchTimer = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          console.log("[Context] Periodic Fetch Request...");
+          ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
+        }
+      }, 3000);
 
       return () => {
         console.log("[WS] Cleanup: Closing connection");
-        clearTimeout(fetchTimer);
+        clearInterval(fetchTimer);
         ws.close();
       };
     }
-  }, [state.roomId]);
+  }, [state.roomId, state.myUserId]);
+
+  // Debug: participantsList の更新監視
+  useEffect(() => {
+    if (state.participantsList) {
+      console.log(
+        "[Context] participantsList updated:",
+        state.participantsList.map((p) => ({
+          id: p.user_id,
+          name: p.user_name,
+          role: p.role,
+          isLeader: String(p.is_Leader),
+        }))
+      );
+    }
+  }, [state.participantsList]);
+
+  // Debug: roomState の変化監視
+  useEffect(() => {
+    console.log("[Context] roomState:", state.roomState);
+  }, [state.roomState]);
 
   return (
     <RoomContext.Provider

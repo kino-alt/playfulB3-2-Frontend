@@ -13,16 +13,32 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
             //state update handler
             case 'STATE_UPDATE':
                 const { nextState, data: payloadData } = payload;
+                console.log("[STATE_UPDATE] nextState:", nextState, "payloadData:", payloadData);
                 
                 setState(prev => {
                     let newState = { ...prev, roomState: nextState as GameState, globalError: null };
 
                     if (payloadData) {
+                        // 🔴 全フィールドをマッピング（undefined の場合は前の値を保持）
                         if (payloadData.topic !== undefined) newState.topic = payloadData.topic;
+                        if (payloadData.answer !== undefined) newState.answer = payloadData.answer;
+                        if (payloadData.theme !== undefined) newState.theme = payloadData.theme;
+                        if (payloadData.hint !== undefined) newState.hint = payloadData.hint;
                         // サーバー側が selected_emojis (snake_case) で送ってくるのでマッピング
                         if (payloadData.selected_emojis !== undefined) {
                             newState.selectedEmojis = payloadData.selected_emojis;
                         }
+                        console.log("[STATE_UPDATE] After mapping - topic:", newState.topic, "selectedEmojis:", newState.selectedEmojis);
+                    }
+                    
+                    // 🔴 payloadData がない、または topic/selectedEmojis が null/空の場合は前の値を保持
+                    if (!payloadData || (payloadData.topic === null && prev.topic)) {
+                        newState.topic = prev.topic;
+                        console.log("[STATE_UPDATE] Preserving previous topic:", prev.topic);
+                    }
+                    if (!payloadData || (payloadData.selected_emojis?.length === 0 && prev.selectedEmojis.length > 0)) {
+                        newState.selectedEmojis = prev.selectedEmojis;
+                        console.log("[STATE_UPDATE] Preserving previous selectedEmojis:", prev.selectedEmojis);
                     }
 
                     // discussing state data update
