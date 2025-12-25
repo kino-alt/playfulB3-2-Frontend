@@ -177,12 +177,12 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       // これにより、handleWS が変わっても useEffect が再実行（切断）されなくなります
       const ws = api.connectWebSocket(state.roomId, (data) => handlerRef.current(data)); 
 
-      const fetchTimer = setTimeout(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          console.log("[Context] Requesting participants...");
-          ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
-        }
-      }, 2000);
+      const fetchTimer = setInterval(() => { // 🔴 一度きりでなく、リストが空の間は送るように変更
+      if (ws.readyState === WebSocket.OPEN && state.participantsList.length === 0) {
+        console.log("[Context] Periodic Fetch Request...");
+        ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
+      }
+    }, 3000);
 
       return () => {
         console.log("[WS] Cleanup: Closing connection");

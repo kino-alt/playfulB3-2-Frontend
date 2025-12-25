@@ -6,15 +6,25 @@ interface ParticipantListProps {
 }
 
 export function ParticipantList({ participants }: ParticipantListProps) {
-  // participant-list.tsx 修正ロジック
-const players = participants.filter(p => p.role !== 'host');
+  console.log("ParticipantList Received:", participants);
+  // ホストを除外する
+  const players = participants.filter(p => p.role !== 'host');
 
-// リーダーとそれ以外を分ける
-const leader = players.find(p => String(p.is_Leader) === "true");
-const otherPlayers = players.filter(p => p.user_id !== leader?.user_id);
+  // リーダー（回答者）を探す
+  const leader = players.find(p => String(p.is_Leader) === "true" || p.is_Leader === true);
+  const otherPlayers = players.filter(p => p.user_id !== leader?.user_id);
 
-// リーダーがいれば先頭、いなければ全員をそのまま
-const sortedParticipants = leader ? [leader, ...otherPlayers] : players;
+  // 表示用リストの作成
+  const sortedParticipants = leader ? [leader, ...otherPlayers] : players;
+
+  // 🔴 もし players.length が 0 なら、ここに原因があります
+  if (players.length === 0) {
+    return (
+      <div className="mb-6 flex-1 text-gray-400 text-sm italic">
+        Waiting for players to join... (Total raw: {participants.length})
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6 flex-1 overflow-y-auto">

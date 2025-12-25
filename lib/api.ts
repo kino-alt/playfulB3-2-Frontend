@@ -108,23 +108,29 @@ export const api = {
 
     const url = `${WS_BASE_URL}/api/rooms/${roomId}/ws`;
     console.log("[WS] Connecting to:", url);
+    
     const ws = new WebSocket(url);
 
-    // 🔴 windowオブジェクトに保持（デバッグ・finishRoom用）
+    // 🔴 修正ポイント: addEventListener を使い、確実にイベントをキャッチする
+    ws.addEventListener('message', (event) => {
+      console.log("--- WS EVENT RECEIVED ---", event.data);
+      try {
+        const data = JSON.parse(event.data);
+        console.log("!!! WS DIRECT RECEIVE !!!", data);
+        if (onMessage) onMessage(data);
+      } catch (err) {
+        console.error("[WS] Parse Error:", err);
+      }
+    });
+
+    ws.addEventListener('open', () => console.log("[WS] Opened"));
+    ws.addEventListener('error', (err) => console.log("[WS] Error", err));
+    ws.addEventListener('close', () => console.log("[WS] Closed"));
+
     if (typeof window !== 'undefined') {
       (window as any).gameWs = ws;
     }
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // 🔴 ブラウザのコンソールでこれが見えるかどうかが最重要です
-      console.log("!!! WS DIRECT RECEIVE !!!", data); 
-      onMessage(data);
-    };
-
-    ws.onerror = (err) => console.error("[WS] Error:", err);
-    ws.onclose = () => console.log("[WS] Disconnected");
-
     return ws;
   },
-};
+}

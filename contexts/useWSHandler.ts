@@ -50,16 +50,23 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
 
             //participant list update handler
            case 'PARTICIPANT_UPDATE':
+            // 🔴 ログを追加して構造を確認
+            console.log("[WS RECEIVED] Data:", payload);
+
             setState(prev => {
-                const newParticipants = payload.participants as Participant[];
+                // MSWは payload.participants に配列を入れているので、そこを参照する
+                const newParticipants = (payload.participants || []) as Participant[];
+                
+                console.log("[WS RECEIVED] Extracted Participants:", newParticipants);
+
                 const me = newParticipants.find(p => p.user_id === prev.myUserId);
                 
                 return { 
-                    ...prev, 
-                    participantsList: newParticipants,
-                    isLeader: me ? (String(me.is_Leader) === "true" || me.is_Leader === true) : prev.isLeader,
-                    globalError: null
-                }
+                ...prev, 
+                participantsList: newParticipants,
+                isLeader: me ? (String(me.is_Leader) === "true" || me.is_Leader === true) : prev.isLeader,
+                globalError: null
+                };
             });
             break;
 
