@@ -32,11 +32,6 @@ export default function WaitingSartGame() {
       <div className="w-full max-w-xs flex flex-col h-full">
         <PageHeader title="Waiting for players" subtitle="Please wait..." />
 
-        {/* Waiting animation */}
-        <div className="flex flex-col items-center">
-          <WaitingAnimation variant="secondary" />
-        </div>
-
         {/* Participants List */}
         <div className="w-full mb-8">
             <ParticipantList participants={participantsList} />

@@ -56,7 +56,7 @@ export function ReviewAnswer() {
             {/*display theme*/}
             <TextDisplay
                 value={theme || ""}
-                inputtitle=""
+                inputtitle="Theme"
                 height="py-0.5"
                 variant="primary"
                 textSize="text-sm"
@@ -67,7 +67,7 @@ export function ReviewAnswer() {
             <TextInput
                 value={topic || ""}
                 onChange={() => {}}
-                inputtitle=""
+                inputtitle="Topic"
                 placeholder=""
                 height="py-4"
                 variant="primary"
@@ -79,7 +79,7 @@ export function ReviewAnswer() {
             <TextInput
                 value={answer ||""}
                 onChange={() => {}}
-                inputtitle=""
+                inputtitle="Answer"
                 placeholder=""
                 height="py-4"
                 variant="secondary"

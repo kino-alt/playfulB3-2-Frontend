@@ -84,7 +84,7 @@ export default function CreateRoom() {
         {/* Start Button */}
         <div className="mt-auto">
           {roomState === GameState.WAITING && (
-              <GameButton variant="primary" onClick={handleStartGame} /*disabled={ParticipantList.length < 3 || ParticipantList.length > 8}*/>
+              <GameButton variant="primary" onClick={handleStartGame} disabled={participantsList.length < 4 || participantsList.length > 6 || isLoading}>
                   Start Game 
               </GameButton>
           )}

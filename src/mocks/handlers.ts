@@ -5,14 +5,14 @@ const WS_BASE_URL = typeof window !== 'undefined'
   ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
   : "ws://localhost:3000";
 
-// 1. WebSocketリンクの作成
+//  WebSocketリンクの作成
 const gameWs = ws.link(`${WS_BASE_URL}/api/rooms/:room_id/ws`);
 let timerInterval: NodeJS.Timeout | null = null;
 
-// 🔴 グローバル参加者リスト（初期値は空）
+// グローバル参加者リスト（初期値は空）
 let currentParticipants: Array<{user_id: string, user_name: string, role: string, is_Leader: boolean}> = [];
 
-// 🔴 グローバルゲームデータ（トピック、答え、選択絵文字など）
+// グローバルゲームデータ（トピック、答え、選択絵文字など）
 let gameData: {
   topic: string | null;
   emojis: string[];
@@ -75,6 +75,12 @@ const broadcastParticipants = () => {
   );
 };
 
+// 選択された絵文字を参加者へ割り当てる（足りない場合はループ）
+const buildAssignments = (emojis: string[]) => {
+  if (!emojis.length || !currentParticipants.length) return [] as Array<{ user_id: string; emoji: string }>;
+  return currentParticipants.map((p, idx) => ({ user_id: p.user_id, emoji: emojis[idx % emojis.length] }));
+};
+
 // 🔴 BroadcastChannel でクロスブラウザ同期
 const syncChannel = new BroadcastChannel('playful-mock-sync');
 syncChannel.onmessage = (event) => {
@@ -95,82 +101,81 @@ syncChannel.onmessage = (event) => {
 export const handlers = [
   // --- 1. Room関連 (HTTP) ---
   http.post('/api/rooms', async () => {
-  console.log("MSW: Intercepted /api/rooms!");
-  
-  // 🔴 新しいルーム作成時は localStorage をクリアして初期化
-  console.log("[MSW] 🗑️ Clearing old room data");
-  localStorage.removeItem('playful-mock-participants');
-  
-  // 🔴 ゲームデータもリセット
-  gameData = {
-    topic: null,
-    emojis: [],
-    answer: null,
-    theme: "人物",
-    hint: "出身地、性別、やったこと",
-  };
-  
-  const initial = [
-    { user_id: "aa", user_name: "ホスト(あなた)", role: "host", is_Leader: false },
-    { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: false },
-    { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: false },
-  ];
-  
-  setParticipants(initial, "/api/rooms");
-  
-  await delay(500);
-  return HttpResponse.json({
-    "room_id": "abc",
-    "user_id": "aa",
-    "room_code": "AAAAAA",
-    "theme": "人物",
-    "hint": "出身地、性別、やったこと",
-  }, { status: 201 });
-}),
+    console.log("MSW: Intercepted /api/rooms!");
+    
+    // 🔴 新しいルーム作成時は localStorage をクリアして初期化
+    console.log("[MSW] 🗑️ Clearing old room data");
+    localStorage.removeItem('playful-mock-participants');
+    
+    // 🔴 ゲームデータもリセット
+    gameData = {
+      topic: null,
+      emojis: [],
+      answer: null,
+      theme: "人物",
+      hint: "出身地、性別、やったこと",
+    };
+    
+    const initial = [
+      { user_id: "aa", user_name: "ホスト(あなた)", role: "host", is_Leader: false },
+      { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: false },
+      { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: false },
+    ];
+    
+    setParticipants(initial, "/api/rooms");
+    
+    await delay(500);
+    return HttpResponse.json({
+      "room_id": "abc",
+      "user_id": "aa",
+      "room_code": "AAAAAA",
+      "theme": "人物",
+      "hint": "出身地、性別、やったこと",
+    }, { status: 201 });
+  }),
 
   http.post('/api/user', async ({ request }) => {
-  console.log("[MSW] ====== /api/user called ======");
-  const body = await request.json() as any;
-  const newUserId = "bb-" + Math.random().toString(36).substring(2, 7);
+    console.log("[MSW] ====== /api/user called ======");
+    const body = await request.json() as any;
+    const newUserId = "bb-" + Math.random().toString(36).substring(2, 7);
 
-  // 🔴 クロスブラウザ同期対応：localStorage から参加者を読み込む
-  let participants = loadParticipantsFromStorage();
-  
-  // localStorage に無ければ初期リスト
-  if (participants.length === 0) {
-    participants = [
-      { user_id: "aa", user_name: "ホスト(あなた)", role: "host" as const, is_Leader: false },
-      { user_id: "dummy1", user_name: "たいよう", role: "player" as const, is_Leader: false },
-      { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
-    ];
-  }
-  
-  console.log("[MSW] Before join, current participants:", participants.map((p: any) => p.user_name).join(', '));
-
-  // 全員を一旦リーダー解除して、join した人をリーダーに設定
-  const updatedList = [
-    ...participants.map((p: any) => ({ ...p, is_Leader: false })),
-    {
-      user_id: newUserId,
-      user_name: body.user_name || "ゲスト",
-      role: "player" as const,
-      is_Leader: true,
+    // 🔴 クロスブラウザ同期対応：localStorage から参加者を読み込む
+    let participants = loadParticipantsFromStorage();
+    
+    // localStorage に無ければ初期リスト
+    if (participants.length === 0) {
+      participants = [
+        { user_id: "aa", user_name: "ホスト(あなた)", role: "host" as const, is_Leader: false },
+        { user_id: "dummy1", user_name: "たいよう", role: "player" as const, is_Leader: false },
+        { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
+      ];
     }
-  ];
-  
-  setParticipants(updatedList, "/api/user");
-  console.log("[MSW] After join, participants:", currentParticipants.map(p => p.user_name).join(', '), "| Total:", currentParticipants.length);
-  console.log("[MSW] ====== /api/user completed (WS connection will trigger broadcast) ======");
+    
+    console.log("[MSW] Before join, current participants:", participants.map((p: any) => p.user_name).join(', '));
 
-  return HttpResponse.json({
-    room_id: "abc",
-    user_id: newUserId,
-    is_leader: "true",
-  }, { status: 200 });
-}),
+    // 全員を一旦リーダー解除して、join した人をリーダーに設定
+    const updatedList = [
+      ...participants.map((p: any) => ({ ...p, is_Leader: false })),
+      {
+        user_id: newUserId,
+        user_name: body.user_name || "ゲスト",
+        role: "player" as const,
+        is_Leader: true,
+      }
+    ];
+    
+    setParticipants(updatedList, "/api/user");
+    console.log("[MSW] After join, participants:", currentParticipants.map(p => p.user_name).join(', '), "| Total:", currentParticipants.length);
+    console.log("[MSW] ====== /api/user completed (WS connection will trigger broadcast) ======");
+
+    return HttpResponse.json({
+      room_id: "abc",
+      user_id: newUserId,
+      is_leader: "true",
+    }, { status: 200 });
+  }),
 
   http.post('/api/rooms/:room_id/start', async ({ params }) => {
-  // どの部屋のIDでリクエストが来たかログに出す
   console.log(`[MSW] Intercepted startGame for room: ${params.room_id}`);
   await delay(200);
   return HttpResponse.json({ status: "success" }, { status: 200 });
@@ -184,6 +189,7 @@ export const handlers = [
     gameData.topic = body.topic;
     gameData.emojis = body.emojis || body.selected_emojis || [];
     console.log("[MSW] Topic saved:", gameData.topic, "Emojis:", gameData.emojis);
+    const assignments = buildAssignments(gameData.emojis);
     
     // 🔴 DISCUSSING 状態に遷移
     setTimeout(() => {
@@ -197,12 +203,7 @@ export const handlers = [
               selected_emojis: gameData.emojis,
               theme: gameData.theme,
               hint: gameData.hint,
-              assignments: [
-                { user_id: "aa", emoji: "🍎" },
-                { user_id: "bb", emoji: "🍎" },
-                { user_id: "dummy1", emoji: "👨" },
-                { user_id: "dummy2", emoji: "🏢" }
-              ]
+              assignments,
             }
           }
         })
@@ -391,12 +392,7 @@ export const handlers = [
               data: {
                 topic: data.payload.topic,
                 selected_emojis: data.payload.emojis,
-                assignments: [
-                  { user_id: "aa", emoji: "🍎" },
-                  { user_id: "bb", emoji: "🍎" },
-                  { user_id: "dummy1", emoji: "👨" },
-                  { user_id: "dummy2", emoji: "🏢" }
-                ]
+                assignments: buildAssignments(data.payload.emojis),
               }
             }
           })

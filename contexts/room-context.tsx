@@ -56,6 +56,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   handlerRef.current = handleWS;
 
   //check host
+  // Host check based on participants list (fallback for test user "aa")
   const amIHost = state.participantsList.some(
     p => p.user_id === state.myUserId && p.role === 'host'
   ) || (state.myUserId === "aa");
@@ -64,7 +65,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   // actions FIX:API設計に合わせる/useCallback関数使用-----------------------------
   // 1.1 Roomの作成 (POST /api/rooms)
   const createRoom = useCallback(async () => {
-    // APIレスポンス: { room_id, user_id, room_code, theme, hint }
+    // API: POST /api/rooms -> create lobby and store ids/theme/hint
     const data = await api.createRoom();
     console.log("[Context] API Response:", data);
     try{
@@ -85,7 +86,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
 
   // 1.4 ルーム参加 (POST /api/user)
   const joinRoom = useCallback(async (roomCode: string, userName: string) => {
-    // APIレスポンス: { room_id, user_is, is_leader }
+    // API: POST /api/user -> join by code and name
     const data = await api.joinRoom(roomCode, userName);
     console.log("[Context] Join Room Response:", data);
     setState((prev) => ({
@@ -106,6 +107,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       
       const ws = (window as any).gameWs; 
       if (ws && ws.readyState === WebSocket.OPEN) {
+        // Notify backend via WS to fan out topic to players
         ws.send(JSON.stringify({ 
           type: 'SUBMIT_TOPIC',
           payload: { topic, emojis: emoji } 
@@ -130,7 +132,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       }));
       const ws = (window as any).gameWs;
       if (ws && ws.readyState === WebSocket.OPEN) {
-        // 🔴 ANSWERING メッセージに topic と selectedEmojis も含める（クロスウィンドウ対応）
+        // ANSWERING broadcast carries context for other tabs/clients
         ws.send(JSON.stringify({ 
           type: 'ANSWERING', 
           payload: { 
@@ -155,6 +157,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       await api.startGame(state.roomId); 
       const ws = (window as any).gameWs; 
       if (ws && ws.readyState === WebSocket.OPEN) {
+        // Ask backend to move to waiting state across clients
         ws.send(JSON.stringify({ type: 'WAITING' }));
       }
     } catch (error) {
@@ -170,6 +173,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       await api.finishRoom(state.roomId); 
       const ws = (window as any).gameWs; 
       if (ws && ws.readyState === WebSocket.OPEN) {
+        // Signal finish to backend and clients
         ws.send(JSON.stringify({ type: 'CHECKING' }));
       }
     } catch (error) {
@@ -181,14 +185,13 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
  useEffect(() => {
     if (state.roomId && state.myUserId) {
         console.log("[Context] Opening WebSocket for roomId:", state.roomId, "userId:", state.myUserId);
-      // 🔴 直接 handleWS を渡さず、Ref を経由した無名関数を渡す
-      // これにより、handleWS が変わっても useEffect が再実行（切断）されなくなります
+      // Keep WS connection stable; dispatch via ref to avoid re-connects on handler change
         const ws = api.connectWebSocket(state.roomId, (data) => {
           console.log("[Context] onMessage received:", data);
           handlerRef.current(data);
       }, state.myUserId, state.roomCode || "ゲスト");  // 🔴 userId と userName を渡す
 
-      // 🔴 定期的に最新の参加者リストを取得（3秒ごと）
+      // Periodically refresh participant list to stay in sync
       const fetchTimer = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           console.log("[Context] Periodic Fetch Request...");

@@ -1,6 +1,9 @@
 // lib/api.ts
 
+// HTTP base endpoint. Set to your Go API origin (e.g., https://api.example.com).
 const API_BASE_URL = ""; 
+
+// WebSocket base endpoint. Defaults to the current host; override if WS is on another host/port.
 const WS_BASE_URL = typeof window !== 'undefined' 
   ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
   : "";
@@ -12,6 +15,7 @@ export const api = {
    * POST /api/rooms
    * ------------------------------- */
   createRoom: async () => {
+    // POST /api/rooms -> creates a room and returns ids / theme / hint
     const response = await fetch(`${API_BASE_URL}/api/rooms`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -28,6 +32,7 @@ export const api = {
    * POST /api/user
    * ------------------------------- */
   joinRoom: async (roomCode: string, userName: string) => {
+    // POST /api/user -> joins by room code and username
     const response = await fetch(`${API_BASE_URL}/api/user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -47,6 +52,7 @@ export const api = {
    * POST /api/rooms/{room_id}/topic
    * ------------------------------- */
   submitTopic: async (roomId: string, topic: string, emoji: string[]) => {
+    // POST /api/rooms/{id}/topic -> host submits topic + emojis
     const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/topic`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,6 +71,7 @@ export const api = {
    * POST /api/rooms/{room_id}/answer
    * ------------------------------- */
   submitAnswer: async (roomId: string, userId: string, answer: string) => {
+    // POST /api/rooms/{id}/answer -> leader submits guessed answer
     const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/answer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,6 +89,7 @@ export const api = {
    * (要修正)ゲーム開始アクション (POST /api/rooms/{room_id}/start)
    * ------------------------------- */
   startGame: async (roomId: string) => {
+    // POST /api/rooms/{id}/start -> transition to game start
     const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/start`, {
       method: "POST",
     });
@@ -93,6 +101,7 @@ export const api = {
    * (要修正)ゲーム終了アクション (POST /api/rooms/{room_id}/start)
    * ------------------------------- */
   finishRoom: async (roomId: string) => {
+    // POST /api/rooms/{id}/finish -> close the room
     const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/finish`, {
       method: "POST",
     });
@@ -158,10 +167,10 @@ export const api = {
 
     ws.onopen = () => {
       console.log("[WS] Connection Opened");
-      // 接続時にデータを要求する
+      // Request latest participants after connect
       ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
       
-      // 🔴 参加者の場合、ユーザー情報を送信してサーバー側に登録させる
+      // Register user on connect so server can track them
       if (userId && userName) {
         console.log("[WS] Sending JOIN_USER:", userId, userName);
         ws.send(JSON.stringify({ type: 'JOIN_USER', payload: { user_id: userId, user_name: userName } }));

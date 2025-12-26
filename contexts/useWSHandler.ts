@@ -6,7 +6,7 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
     //ws message handler
     const handleWebSocketMessage = useCallback((eventData: any) => {
         const { type, payload } = eventData;
-        //logging
+        // Central dispatcher for WS messages from backend
         console.log("[WS RECEIVED]", type, payload); 
 
         switch (type) {
@@ -65,9 +65,9 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                 break;
 
             //participant list update handler
-           case 'PARTICIPANT_UPDATE':
+            case 'PARTICIPANT_UPDATE':
             case 'PARTICIPANTS_UPDATE':
-            // 🔴 ログを追加して構造を確認
+            // Participant list delta/full update
             console.log("[WS RECEIVED] Data:", payload);
 
             setState(prev => {

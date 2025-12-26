@@ -96,7 +96,7 @@ export function DiscussionTime() {
               
                 <div className="absolute inset-0 flex items-center justify-center transform translate-y-[-15px]">
                     <p className="text-8xl font-bold">
-                        {AssignedEmoji || "🍎"}
+                        {AssignedEmoji || ""}
                     </p>
                 </div>
                 
