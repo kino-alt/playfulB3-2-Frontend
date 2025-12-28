@@ -24,7 +24,7 @@ let gameData: {
   emojis: [],
   answer: null,
   theme: "人物",
-  hint: "出身地、性別、やったこと",
+  hint: "スティーブジョブズ",
 };
 
 // localStorage から参加者リストを取得（クロスブラウザ同期用）
@@ -124,7 +124,7 @@ export const handlers = [
       emojis: [],
       answer: null,
       theme: "人物",
-      hint: "出身地、性別、やったこと",
+      hint: "スティーブジョブズ",
     };
     
     const initial = [
@@ -141,7 +141,7 @@ export const handlers = [
       "user_id": "aa",
       "room_code": "AAAAAA",
       "theme": "人物",
-      "hint": "出身地、性別、やったこと",
+      "hint": "スティーブジョブズ",
     }, { status: 201 });
   }),
 

@@ -66,10 +66,9 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
     }
 
     const isInputtitleShown = inputtitle && inputtitle.trim() !== ""
-
-    {/* 修正ポイント: modeがdisplayの時、または入力が完了している時に色を表示する */}
-    const shouldShowDisplay = mode === "display" || (mode !== "edit" && value.trim() !== "")
     const isDisabled = mode === "display"
+    const hasValue = value && value.trim() !== ""
+    const shouldShowDisplayColor = hasValue && !isDisabled
 
     return (
       <div className={marginBottom}>
@@ -80,29 +79,16 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
             <p className={`${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'}`}>{value}</p>
           </div>
         ) : (
-          <div className="relative w-full">
-            {/* 入力完了後のデザインレイヤー */}
-            {shouldShowDisplay && (
-              <div
-                className={`absolute inset-0 px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center pointer-events-none z-0`}
-              >
-                <p className={`${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'}`}>{value}</p>
-              </div>
-            )}
-
-            <input
-              ref={ref}
-              type="text"
-              placeholder={placeholder}
-              value={value}
-              onChange={(e) => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
-              maxLength={maxLength}
-              disabled={isDisabled}
-              className={`relative z-10 w-full px-4 ${height} ${
-                shouldShowDisplay ? "bg-transparent text-transparent border-transparent" : "bg-white text-gray-700 border-gray-300"
-              } border-2 rounded-xl ${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'} text-center placeholder:text-gray-400 focus:outline-none ${getFocusColors()} transition-all caret-gray-700`}
-            />
-          </div>
+          <input
+            ref={ref}
+            type="text"
+            placeholder={placeholder}
+            value={value}
+            onChange={(e) => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
+            maxLength={maxLength}
+            disabled={isDisabled}
+            className={`w-full px-4 ${height} border-2 rounded-xl ${shouldShowDisplayColor ? getDisplayColors() : 'bg-white text-gray-700 border-gray-300'} ${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'} text-center placeholder:text-gray-400 focus:outline-none ${getFocusColors()} transition-all caret-gray-700`}
+          />
         )}
       </div>
     )

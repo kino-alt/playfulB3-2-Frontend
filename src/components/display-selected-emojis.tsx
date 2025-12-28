@@ -21,34 +21,28 @@ export function DisplaySelectedEmojis({ selectedEmojis, handleRemoveEmoji, maxEm
         <p className="text-amber-600/80 text-xs mb-2">Selected ({selectedEmojis.length}/{displayLength})</p>
 
         {/* Emoji Grid */}
-        <div className="grid grid-cols-4 gap-3">
-        {Array.from({ length: displayLength}).map((_, index) => (
-            <div
-            key={index}
-            className="relative aspect-square" 
-            >
-            {selectedEmojis[index] ? (
-                <button
-                onClick={() => isEditable && handleRemoveEmoji(index)}
-                className="w-full h-full bg-white text-gray-500 border-2 border-amber-300 rounded-lg flex items-center justify-center text-3xl group relative"
-                >
-                {selectedEmojis[index]}
-
-                {/* Delete Overlay */}
-                {isEditable && (
-                  <div
-                      className="absolute inset-0 bg-red-600/70 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  >
-                      <span className="text-white text-3xl font-bold">×</span>
+        <div className="grid grid-cols-5 gap-2"> 
+          {Array.from({ length: displayLength }).map((_, index) => (
+            <div key={index} className="relative aspect-square">
+              {selectedEmojis[index] ? (
+                <div className="relative w-full h-full">
+                  <div className="w-full h-full bg-white border-2 border-amber-300 rounded-lg flex items-center justify-center text-2xl">
+                    {selectedEmojis[index]}
                   </div>
-                )}
-                </button>
-            ) : (
-                // Empty slot
-                <div className="w-full h-full bg-gray-200/50 rounded-lg border border-gray-300/50"></div>
-            )}
+                  {isEditable && (
+                    <button
+                      onClick={() => handleRemoveEmoji(index)}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center shadow-sm"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full h-full bg-gray-100 rounded-lg border-2 border-dashed border-gray-200" />
+              )}
             </div>
-        ))}
+          ))}
         </div>
     </div>
   );
