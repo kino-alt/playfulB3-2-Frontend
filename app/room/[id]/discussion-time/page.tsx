@@ -1,13 +1,12 @@
 import {DiscussionTime} from "@/src/components/discussion-time"
 
-export default async function DiscussionTimePage({
- params,
+export default function DiscussionTimePage({
+  params,
 }: {
-  params: { id: string } 
+  params: { id: string }
 }) {
-  const { id } = await params
-
-  return(
-      <DiscussionTime />
+  // const { id } = params;
+  return (
+    <DiscussionTime />
   )
 }

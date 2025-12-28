@@ -1,14 +1,12 @@
 import WaitingStartGame from "@/src/components/waiting-start-game"
 
-export default async function WaitingStartGamePage({
+export default function WaitingStartGamePage({
   params,
 }: {
-  params: Promise<{ id: string }> 
+  params: { id: string }
 }) {
-  // 🔴 paramsをawaitしてからidを取り出す
-  const { id } = await params
-
-return(
-     <WaitingStartGame/>
+  // const { id } = params;
+  return (
+    <WaitingStartGame />
   )
 }

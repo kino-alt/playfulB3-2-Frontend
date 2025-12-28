@@ -24,11 +24,47 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                         if (payloadData.answer !== undefined) newState.answer = payloadData.answer;
                         if (payloadData.theme !== undefined) newState.theme = payloadData.theme;
                         if (payloadData.hint !== undefined) newState.hint = payloadData.hint;
+                        
+                        // 🔴 ダミー絵文字関連データを受信
+                        if (payloadData.originalEmojis !== undefined) {
+                            newState.originalEmojis = payloadData.originalEmojis;
+                        }
+                        if (payloadData.dummyIndex !== undefined) {
+                            newState.dummyIndex = payloadData.dummyIndex;
+                        }
+                        if (payloadData.dummyEmoji !== undefined) {
+                            newState.dummyEmoji = payloadData.dummyEmoji;
+                        }
+                        
                         // サーバー側が selected_emojis (snake_case) で送ってくるのでマッピング
+                        // 🔴 ホストかどうかで表示する絵文字を切り替え
+                        const isHost = prev.participantsList.some(
+                            p => p.user_id === prev.myUserId && p.role === 'host'
+                        ) || (prev.myUserId === "aa");
+                        
+                        if (payloadData.displayedEmojis !== undefined) {
+                            // サーバーから displayedEmojis が直接送られる場合
+                            newState.displayedEmojis = payloadData.displayedEmojis;
+                            console.log("[STATE_UPDATE] Received displayedEmojis:", payloadData.displayedEmojis);
+                        }
+                        
                         if (payloadData.selected_emojis !== undefined) {
+                            // プレイヤーにはダミーが混じった配列を表示
+                            // displayedEmojis が既に設定されている場合はそちらを優先
+                            if (!newState.displayedEmojis || newState.displayedEmojis.length === 0) {
+                                newState.displayedEmojis = payloadData.selected_emojis;
+                            }
+                            // selectedEmojisは互換性のため残す（プレイヤー用）
                             newState.selectedEmojis = payloadData.selected_emojis;
                         }
-                        console.log("[STATE_UPDATE] After mapping - topic:", newState.topic, "selectedEmojis:", newState.selectedEmojis);
+                        
+                        // 🔴 ホストの場合は元の絵文字も selectedEmojis に設定
+                        if (isHost && payloadData.originalEmojis !== undefined) {
+                            newState.selectedEmojis = payloadData.originalEmojis;
+                            console.log("[STATE_UPDATE] Host view: showing original emojis");
+                        }
+                        
+                        console.log("[STATE_UPDATE] After mapping - topic:", newState.topic, "selectedEmojis:", newState.selectedEmojis, "displayedEmojis:", newState.displayedEmojis);
                     }
                     
                     // 🔴 payloadData がない、または topic/selectedEmojis が null/空の場合は前の値を保持
@@ -39,6 +75,26 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                     if (!payloadData || (payloadData.selected_emojis?.length === 0 && prev.selectedEmojis.length > 0)) {
                         newState.selectedEmojis = prev.selectedEmojis;
                         console.log("[STATE_UPDATE] Preserving previous selectedEmojis:", prev.selectedEmojis);
+                    }
+                    // 🔴 displayedEmojis も保持
+                    if (!payloadData || (payloadData.displayedEmojis?.length === 0 && prev.displayedEmojis.length > 0)) {
+                        newState.displayedEmojis = prev.displayedEmojis;
+                        console.log("[STATE_UPDATE] Preserving previous displayedEmojis:", prev.displayedEmojis);
+                    }
+                    // 🔴 originalEmojis も保持
+                    if (!payloadData || (payloadData.originalEmojis?.length === 0 && prev.originalEmojis.length > 0)) {
+                        newState.originalEmojis = prev.originalEmojis;
+                        console.log("[STATE_UPDATE] Preserving previous originalEmojis:", prev.originalEmojis);
+                    }
+                    // 🔴 dummyIndex も保持
+                    if ((!payloadData || payloadData.dummyIndex === undefined || payloadData.dummyIndex === null) && prev.dummyIndex !== null) {
+                        newState.dummyIndex = prev.dummyIndex;
+                        console.log("[STATE_UPDATE] Preserving previous dummyIndex:", prev.dummyIndex);
+                    }
+                    // 🔴 dummyEmoji も保持
+                    if ((!payloadData || !payloadData.dummyEmoji) && prev.dummyEmoji) {
+                        newState.dummyEmoji = prev.dummyEmoji;
+                        console.log("[STATE_UPDATE] Preserving previous dummyEmoji:", prev.dummyEmoji);
                     }
 
                     // discussing state data update

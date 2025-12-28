@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { RoomContextType, RoomState, GameState } from "./types";
 import { useWsHandler } from "./useWSHandler";
 import { ParticipantList } from "@/src/components/participant-list";
+import { injectDummyEmoji } from "@/lib/emoji-utils";
 
 //FIX: Separate RoomState
 const getInitialRoomState = (): RoomState => {
@@ -20,6 +21,10 @@ const getInitialRoomState = (): RoomState => {
       hint: null,
       answer: null,
       selectedEmojis: [],
+      originalEmojis: [],
+      displayedEmojis: [],
+      dummyIndex: null,
+      dummyEmoji: null,
       participantsList: [],
       roomState: GameState.WAITING,
       AssignedEmoji: null,
@@ -43,6 +48,10 @@ const getInitialRoomState = (): RoomState => {
         hint: parsed.hint || null,
         answer: parsed.answer || null,
         selectedEmojis: parsed.selectedEmojis || [],
+        originalEmojis: parsed.originalEmojis || [],
+        displayedEmojis: parsed.displayedEmojis || [],
+        dummyIndex: parsed.dummyIndex ?? null,
+        dummyEmoji: parsed.dummyEmoji || null,
         participantsList: parsed.participantsList || [],
         roomState: parsed.roomState || GameState.WAITING,
         AssignedEmoji: parsed.AssignedEmoji || null,
@@ -65,6 +74,10 @@ const getInitialRoomState = (): RoomState => {
     hint: null,
     answer: null,
     selectedEmojis: [],
+    originalEmojis: [],
+    displayedEmojis: [],
+    dummyIndex: null,
+    dummyEmoji: null,
     participantsList: [],
     roomState: GameState.WAITING,
     AssignedEmoji: null,
@@ -158,8 +171,15 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   // 1.4 ルーム参加 (POST /api/user)
   const joinRoom = useCallback(async (roomCode: string, userName: string) => {
     // API: POST /api/user -> join by code and name
-    const data = await api.joinRoom(roomCode, userName);
-    console.log("[Context] Join Room Response:", data);
+    const response = await api.joinRoom(roomCode, userName);
+    console.log("[Context] Join Room Response:", response);
+    
+    // バックエンドがエラーレスポンスを返す場合をチェック
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    
+    const data = response;
     const newState = {
       roomId: data.room_id,
       roomCode,
@@ -181,21 +201,54 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   const submitTopic = useCallback(async (topic: string, emoji: string[]) => {
     if (!state.roomId || !amIHost) return;
     try {
-      await api.submitTopic(state.roomId, topic, emoji);
-      
+      // 🔴 ダミー絵文字を注入
+      const dummyResult = injectDummyEmoji(emoji);
+      console.log("[Context] Dummy injection:", {
+        original: dummyResult.originalEmojis,
+        displayed: dummyResult.displayedEmojis,
+        dummyIndex: dummyResult.dummyIndex,
+        dummyEmoji: dummyResult.dummyEmoji,
+      });
+
+      // 状態に保存（ホストは元の絵文字も見られるように保持）
+      setState(prev => ({
+        ...prev,
+        topic,
+        selectedEmojis: dummyResult.originalEmojis,  // ホスト用：元の絵文字
+        originalEmojis: dummyResult.originalEmojis,
+        displayedEmojis: dummyResult.displayedEmojis,
+        dummyIndex: dummyResult.dummyIndex,
+        dummyEmoji: dummyResult.dummyEmoji,
+      }));
+
+      const result = await api.submitTopic(state.roomId, topic, emoji);
+      if ((result as any)?.error) {
+        console.error("[Context] submitTopic error:", (result as any).error, (result as any).details || "");
+        setState(prev => ({ ...prev, globalError: (result as any).error }));
+        return;
+      }
+
       const ws = (window as any).gameWs; 
       if (ws && ws.readyState === WebSocket.OPEN) {
         // Notify backend via WS to fan out topic to players
+        // 🔴 プレイヤーにはダミーが混じった配列を送信
         ws.send(JSON.stringify({ 
           type: 'SUBMIT_TOPIC',
-          payload: { topic, emojis: emoji } 
+          payload: { 
+            topic, 
+            emojis: dummyResult.displayedEmojis,  // プレイヤー用：ダミー混入版
+            originalEmojis: dummyResult.originalEmojis,  // ホスト確認用
+            dummyIndex: dummyResult.dummyIndex,
+            dummyEmoji: dummyResult.dummyEmoji,
+          } 
         }));
-        console.log("[Context] WS Message Sent: SUBMIT_TOPIC");
+        console.log("[Context] WS Message Sent: SUBMIT_TOPIC with dummy injection");
       }
     } catch (error) {
       console.error("Failed to submit topic:", error);
+      setState(prev => ({ ...prev, globalError: (error as any)?.message || "Failed to submit topic" }));
     }
-  }, [state.roomId,state.participantsList, state.myUserId]);
+  }, [state.roomId,state.participantsList, state.myUserId, amIHost]);
 
   // 1.3 回答の提出 (POST /api/rooms/${room_id}/answer)
   const submitAnswer = useCallback(async (answer: string) => {
@@ -211,12 +264,17 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       const ws = (window as any).gameWs;
       if (ws && ws.readyState === WebSocket.OPEN) {
         // ANSWERING broadcast carries context for other tabs/clients
+        // 🔴 ダミーデータも含めて送信
         ws.send(JSON.stringify({ 
           type: 'ANSWERING', 
           payload: { 
             answer,
             topic: state.topic,
             selected_emojis: state.selectedEmojis,
+            originalEmojis: state.originalEmojis,
+            displayedEmojis: state.displayedEmojis,
+            dummyIndex: state.dummyIndex,
+            dummyEmoji: state.dummyEmoji,
             theme: state.theme,
             hint: state.hint,
           } 
@@ -280,6 +338,10 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       hint: null,
       answer: null,
       selectedEmojis: [],
+      originalEmojis: [],
+      displayedEmojis: [],
+      dummyIndex: null,
+      dummyEmoji: null,
       participantsList: [],
       roomState: GameState.WAITING,
       AssignedEmoji: null,

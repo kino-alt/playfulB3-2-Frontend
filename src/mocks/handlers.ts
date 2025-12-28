@@ -16,12 +16,20 @@ let currentParticipants: Array<{user_id: string, user_name: string, role: string
 let gameData: {
   topic: string | null;
   emojis: string[];
+  originalEmojis: string[];
+  displayedEmojis: string[];
+  dummyIndex: number | null;
+  dummyEmoji: string | null;
   answer: string | null;
   theme: string | null;
   hint: string | null;
 } = {
   topic: null,
   emojis: [],
+  originalEmojis: [],
+  displayedEmojis: [],
+  dummyIndex: null,
+  dummyEmoji: null,
   answer: null,
   theme: "人物",
   hint: "スティーブジョブズ",
@@ -122,6 +130,10 @@ export const handlers = [
     gameData = {
       topic: null,
       emojis: [],
+      originalEmojis: [],
+      displayedEmojis: [],
+      dummyIndex: null,
+      dummyEmoji: null,
       answer: null,
       theme: "人物",
       hint: "スティーブジョブズ",
@@ -227,7 +239,7 @@ export const handlers = [
         seconds--;
         if (seconds < 0) {
           clearInterval(timerInterval!);
-          // ANSWERING 状態に遷移する際にも data を送信
+          // ANSWERING 状態に遷移する際にもダミーデータを送信
           gameWs.broadcast(
             JSON.stringify({
               type: 'STATE_UPDATE',
@@ -236,6 +248,10 @@ export const handlers = [
                 data: {
                   topic: gameData.topic,
                   selected_emojis: gameData.emojis,
+                  originalEmojis: gameData.originalEmojis,
+                  displayedEmojis: gameData.displayedEmojis,
+                  dummyIndex: gameData.dummyIndex,
+                  dummyEmoji: gameData.dummyEmoji,
                   theme: gameData.theme,
                   hint: gameData.hint,
                 }
@@ -381,9 +397,35 @@ export const handlers = [
         gameWs.broadcast(
           JSON.stringify({
             type: 'STATE_UPDATE',
-            payload: { nextState: "finished" }
+            payload: {
+              nextState: "checking",
+              data: {
+                topic: gameData.topic,
+                answer: gameData.answer,
+                selected_emojis: gameData.emojis,
+                originalEmojis: gameData.originalEmojis,
+                displayedEmojis: gameData.displayedEmojis,
+                dummyIndex: gameData.dummyIndex,
+                dummyEmoji: gameData.dummyEmoji,
+                theme: gameData.theme,
+                hint: gameData.hint,
+              }
+            }
           })
         );
+        return;
+      }
+
+      if (data.type === 'SUBMIT_TOPIC') {
+        // 🔴 クライアントから送信されたダミーデータを保存
+        const { topic, emojis, originalEmojis, dummyIndex, dummyEmoji } = data.payload;
+        gameData.topic = topic;
+        gameData.emojis = emojis;  // displayedEmojis（ダミー混入版）
+        gameData.originalEmojis = originalEmojis;
+        gameData.displayedEmojis = emojis;  // displayedEmojiと同じ
+        gameData.dummyIndex = dummyIndex;
+        gameData.dummyEmoji = dummyEmoji;
+        console.log("[MSW] SUBMIT_TOPIC received with dummy data:", { originalEmojis, displayedEmojis: emojis, dummyIndex, dummyEmoji });
         return;
       }
 
@@ -395,13 +437,21 @@ export const handlers = [
         if (data.payload.theme) gameData.theme = data.payload.theme;
         if (data.payload.hint) gameData.hint = data.payload.hint;
         
+        // 🔴 ダミーデータも保持（ANSWERING送信時に含まれている場合）
+        if (data.payload.originalEmojis) gameData.originalEmojis = data.payload.originalEmojis;
+        if (data.payload.displayedEmojis) gameData.displayedEmojis = data.payload.displayedEmojis;
+        if (data.payload.dummyIndex !== undefined) gameData.dummyIndex = data.payload.dummyIndex;
+        if (data.payload.dummyEmoji) gameData.dummyEmoji = data.payload.dummyEmoji;
+        
         console.log("[MSW] ANSWERING - Updated gameData:", {
           topic: gameData.topic,
           answer: gameData.answer,
           selected_emojis: gameData.emojis,
+          displayedEmojis: gameData.displayedEmojis,
+          dummyIndex: gameData.dummyIndex,
         });
         
-        // 🔴 全データを含めて CHECKING 状態に遷移
+        // 🔴 全データを含めて CHECKING 状態に遷移（ダミーデータも送信）
         gameWs.broadcast(
           JSON.stringify({
             type: 'STATE_UPDATE',
@@ -411,6 +461,10 @@ export const handlers = [
                 topic: gameData.topic,
                 answer: gameData.answer,
                 selected_emojis: gameData.emojis,
+                originalEmojis: gameData.originalEmojis,
+                displayedEmojis: gameData.displayedEmojis,
+                dummyIndex: gameData.dummyIndex,
+                dummyEmoji: gameData.dummyEmoji,
                 theme: gameData.theme,
                 hint: gameData.hint,
               }

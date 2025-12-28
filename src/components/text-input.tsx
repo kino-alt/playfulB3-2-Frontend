@@ -45,7 +45,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
         case "secondary":
           return "bg-amber-50 border-amber-500 text-amber-600"
         case "gray":
-          return "bg-gray-50 border-gray-300 text-gray-400"
+          return "bg-gray-50 border-gray-400 text-gray-600"
         default:
           return "bg-emerald-50 border-emerald-500 text-emerald-600"
       }

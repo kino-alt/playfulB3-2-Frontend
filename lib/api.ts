@@ -53,17 +53,25 @@ export const api = {
    * ------------------------------- */
   submitTopic: async (roomId: string, topic: string, emoji: string[]) => {
     // POST /api/rooms/{id}/topic -> host submits topic + emojis
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/topic`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        topic,
-        emojis: emoji,
-      }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/topic`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          emojis: emoji,
+        }),
+      });
 
-    if (!response.ok) throw new Error("Failed to submit topic");
-    return response.json();
+      if (!response.ok) {
+        let details = "";
+        try { details = await response.text(); } catch {}
+        return { error: "Failed to submit topic", status: response.status, details } as any;
+      }
+      return response.json();
+    } catch (e: any) {
+      return { error: e?.message || "Network error" } as any;
+    }
   },
 
   /** -------------------------------
@@ -198,5 +206,27 @@ export const api = {
     }
 
     return ws;
+  },
+
+  /** -------------------------------
+   * ルーム情報の取得（オプション）
+   * GET /api/rooms/:roomCode
+   * ------------------------------- */
+  getRoomInfo: async (roomCode: string) => {
+    // バックエンドで実装されている場合のフォールバック
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) throw new Error("Failed to get room info");
+      return response.json();
+    } catch (error) {
+      // エンドポイントが存在しない場合は、空の参加者リストを返す
+      // joinRoom時のバックエンド検証に依頼する
+      console.warn("[API] getRoomInfo not available, relying on backend validation");
+      throw error;
+    }
   },
 }

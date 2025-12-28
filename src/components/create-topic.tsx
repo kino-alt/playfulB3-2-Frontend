@@ -42,7 +42,7 @@ export function CreateTopic() {
       
       timerRef.current = setTimeout(() => {
         setStep("emoji");
-      }, 2000); // 2秒間入力が止まったら移行
+      }, 1000); // 1秒間入力が止まったら移行
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [topicInput, step]);
@@ -146,7 +146,7 @@ export function CreateTopic() {
               {showPicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
-                  <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 z-50 shadow-2xl">
+                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[70%] z-50 shadow-2xl">
                     <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.LIGHT} width={280} height={300} skinTonesDisabled />
                   </div>
                 </>

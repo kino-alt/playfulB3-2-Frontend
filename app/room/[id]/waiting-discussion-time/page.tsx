@@ -1,13 +1,12 @@
 import {WaitingDiscussionTime} from "@/src/components/wating-discussion-time"
 
-export default async function WaitingDiscussionTimePage({
-params,
+export default function WaitingDiscussionTimePage({
+  params,
 }: {
-  params: Promise<{ id: string }> 
+  params: { id: string }
 }) {
-  const { id } = await params
-
-return(
-    <WaitingDiscussionTime/>
-)
+  // const { id } = params;
+  return (
+    <WaitingDiscussionTime />
+  )
 }

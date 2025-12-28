@@ -162,7 +162,7 @@ export function WaitingAnimation({
           onClick={handleTextClick}
         >
           <h2 className={`text-3xl font-bold ${colorClass} animate-pulse`}>
-            Waiting...
+            Waiting
           </h2>
           <p className="text-gray-400 text-xs mt-2 bg-white/10 px-3 py-1 rounded-full border border-white/20 whitespace-nowrap">
             {inputText}を待っています

@@ -103,7 +103,7 @@ export function DiscussionTime() {
               {/* 吹き出しのしっぽ */}
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-white border-b-[3px] border-r-[3px] border-gray-300 rotate-45 rounded-sm"></div>               
               {/* 絵文字 */}
-              <p className="text-[100px] sm:text-[110px] select-none z-10 drop-shadow-sm leading-none">
+              <p className="text-[80px] sm:text-[90px] select-none z-10 drop-shadow-sm leading-none">
                 {AssignedEmoji || ""}
               </p>
             </div>

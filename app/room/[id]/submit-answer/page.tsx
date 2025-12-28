@@ -1,13 +1,12 @@
 import SubmitAnswer from "@/src/components/submit-answer"
 
-export default async function SubmitAnswerPage({
- params,
+export default function SubmitAnswerPage({
+  params,
 }: {
-  params: Promise<{ id: string }> 
+  params: { id: string }
 }) {
-  const { id } = await params
-
-return(
-     <SubmitAnswer />
-)
+  // const { id } = params;
+  return (
+    <SubmitAnswer />
+  )
 }

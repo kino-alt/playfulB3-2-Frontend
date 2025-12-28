@@ -27,6 +27,10 @@ export interface RoomState {
     hint: string | null;    //FIX: Add
     answer: string | null;
     selectedEmojis: string[];
+    originalEmojis: string[];    // ホストが選んだ元の絵文字（ダミー注入前）
+    displayedEmojis: string[];   // プレイヤーに見せる絵文字（ダミー注入後）
+    dummyIndex: number | null;   // ダミーが注入された位置
+    dummyEmoji: string | null;   // 注入されたダミー絵文字
     participantsList: Participant[]
     roomState: GameState;
     AssignedEmoji: string | null;
