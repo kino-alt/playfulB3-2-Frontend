@@ -68,13 +68,17 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
             case 'PARTICIPANT_UPDATE':
             case 'PARTICIPANTS_UPDATE':
             // Participant list delta/full update
-            console.log("[WS RECEIVED] Data:", payload);
-
+            // ログノイズ削減 - 全てのPARTICIPANT_UPDATEログをコメントアウト
+            // console.log("[WS RECEIVED] PARTICIPANT_UPDATE", payload);
+            
             setState(prev => {
                 // MSWは payload.participants に配列を入れているので、そこを参照する
                 const newParticipants = (payload.participants || []) as Participant[];
                 
-                console.log("[WS RECEIVED] Extracted Participants:", newParticipants);
+                // 参加者数が変わった場合のみログを出す
+                if (newParticipants.length !== prev.participantsList.length) {
+                    console.log("[WS RECEIVED] Participants changed:", newParticipants.length, "people");
+                }
 
                 const me = newParticipants.find(p => p.user_id === prev.myUserId);
                 

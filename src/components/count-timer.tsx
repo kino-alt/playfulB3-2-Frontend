@@ -4,10 +4,11 @@ import { TextInput } from "./text-input"
 
 interface CountTimerProps {
   timervalue: string | null
+  height?: string // 高さを指定するプロパティを追加
 }
 
-export function CountTimer({ timervalue }: CountTimerProps) {
-    return(
+export function CountTimer({ timervalue, height = "py-10" }: CountTimerProps) {
+    return (
     <>
       {/* Timer Display */}
       <TextInput
@@ -15,7 +16,7 @@ export function CountTimer({ timervalue }: CountTimerProps) {
         onChange={() => {}}
         inputtitle=""
         placeholder=""
-        height="py-10"
+        height={height} // 受け取ったheightをTextInputに渡す
         variant="gray"
         mode="display"
         textSize="text-4xl"

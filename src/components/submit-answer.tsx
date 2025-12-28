@@ -55,13 +55,15 @@ export default function SubmitAnswer() {
         />
 
         {/* Leader Label */}
-        <div className="w-full flex justify-start">
-          <TextDisplay
-            value={"Leader"}
-            height="py-0.5"
-            variant="primary"
-            textSize="text-xs"
-          />
+        <div className="min-w-[60px] self-start mb-2">
+            <TextDisplay
+              value="Leader"
+              inputtitle=""
+              height="py-1"
+              variant="primary"
+              textSize="text-[10px]"
+              marginBottom="mb-0" 
+            />
         </div>
         
         {/* Answer Input */}
@@ -69,12 +71,13 @@ export default function SubmitAnswer() {
           <TextInput
               value={answerInput}
               onChange={setAnswerInput}
-              inputtitle="Your Answer"
+              inputtitle=""
               placeholder="Enter answer"
               maxLength={20}
               height="py-5"
               variant="secondary"
               textSize="text-2xl"
+              uppercase={false}
           />
         </div>
 

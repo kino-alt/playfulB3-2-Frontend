@@ -45,4 +45,6 @@ export interface RoomContextType extends RoomState {
   submitAnswer: (answer: string) => Promise<void>;
   startGame: () => Promise<void>;
   finishRoom: () => Promise<void>;
+  skipDiscussion: () => Promise<void>; // 議論をスキップ
+  resetRoom: () => void; // タイトル画面に戻る時に状態をクリア
 }

@@ -145,7 +145,7 @@ export function WaitingAnimation({
                             bg-gray-200/40 backdrop-blur-sm 
                             border-2 border-gray-200/50 
                             rounded-full text-2xl transition-all duration-500
-                            hover:scale-125 hover:border-white hover:bg-gray-200/60`}
+                            hover:scale-130 hover:border-white hover:bg-gray-200/80`}
                 style={{
                   transform: isRotating ? "rotate(360deg) scale(1.3)" : "rotate(0deg) scale(1)"
                 }}
@@ -165,7 +165,7 @@ export function WaitingAnimation({
             Waiting...
           </h2>
           <p className="text-gray-400 text-xs mt-2 bg-white/10 px-3 py-1 rounded-full border border-white/20 whitespace-nowrap">
-            {inputText}の準備を待っています
+            {inputText}を待っています
           </p>
         </div>
       </div>

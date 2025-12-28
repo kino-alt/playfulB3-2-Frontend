@@ -31,7 +31,7 @@ export default function WaitingAnswer() {
 
         {/* Waiting animation */}
         <div className="flex flex-col items-center flex-1 justify-center">
-          <WaitingAnimation variant="secondary" />
+          <WaitingAnimation variant="secondary" inputText="リーダーの回答"/>
         </div>
 
       </div>

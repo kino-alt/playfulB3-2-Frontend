@@ -33,7 +33,8 @@ const loadParticipantsFromStorage = () => {
     const stored = localStorage.getItem('playful-mock-participants');
     if (stored) {
       const parsed = JSON.parse(stored);
-      console.log("[MSW] 📦 Loaded from localStorage:", parsed.map((p: any) => p.user_name).join(', '));
+      // ログノイズ削減
+      // console.log("[MSW] 📦 Loaded from localStorage:", parsed.map((p: any) => p.user_name).join(', '));
       return parsed;
     }
   } catch (e) {
@@ -57,16 +58,26 @@ const saveParticipantsToStorage = (participants: typeof currentParticipants) => 
 
 // デバッグ用：currentParticipants の変更を追跡
 const setParticipants = (newList: typeof currentParticipants, source: string) => {
-  console.log(`[MSW] setParticipants called from: ${source}`);
-  console.log(`[MSW] Old participants:`, currentParticipants.map(p => p.user_name).join(', '));
-  console.log(`[MSW] New participants:`, newList.map(p => p.user_name).join(', '));
-  currentParticipants = newList;
-  saveParticipantsToStorage(newList);  // Always sync to localStorage
+  // 実際に変更があったかどうかを確認
+  const hasChanged = 
+    currentParticipants.length !== newList.length ||
+    currentParticipants.some((p, i) => !newList[i] || p.user_id !== newList[i].user_id);
+  
+  if (hasChanged) {
+    console.log(`[MSW] setParticipants called from: ${source}`);
+    console.log(`[MSW] Old participants:`, currentParticipants.map(p => p.user_name).join(', '));
+    console.log(`[MSW] New participants:`, newList.map(p => p.user_name).join(', '));
+    currentParticipants = newList;
+    saveParticipantsToStorage(newList);
+    // 変更ありの場合のみ broadcast
+    broadcastParticipants();
+  }
 };
 
 const broadcastParticipants = () => {
   const listSnapshot = [...currentParticipants];
-  console.log("[MSW] Broadcasting updated list (clients:", gameWs.clients.size, "), participants:", listSnapshot.map(p => p.user_name).join(', '));
+  // ログノイズ削減のためコメントアウト
+  // console.log("[MSW] Broadcasting updated list (clients:", gameWs.clients.size, "), participants:", listSnapshot.map(p => p.user_name).join(', '));
   gameWs.broadcast(
     JSON.stringify({
       type: 'PARTICIPANT_UPDATE',
@@ -265,6 +276,36 @@ export const handlers = [
     return HttpResponse.json({ status: "success" }, { status: 200 });
   }),
 
+  // Skip discussion and move to answering phase
+  http.post('/api/rooms/:room_id/skip-discussion', async ({ params }) => {
+    console.log(`[MSW] Skip discussion for room: ${params.room_id}`);
+    
+    // タイマーをクリア
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    
+    // 即座にANSWERING状態に遷移
+    gameWs.broadcast(
+      JSON.stringify({
+        type: 'STATE_UPDATE',
+        payload: {
+          nextState: "answering",
+          data: {
+            topic: gameData.topic,
+            selected_emojis: gameData.emojis,
+            theme: gameData.theme,
+            hint: gameData.hint,
+          }
+        }
+      })
+    );
+    
+    await delay(100);
+    return HttpResponse.json({ status: "success" }, { status: 200 });
+  }),
+
   // --- 2. WebSocketのモック (gameWs.addEventListener をそのまま入れる) ---
   gameWs.addEventListener('connection', ({ client }) => {
     console.log("[MSW] New Connection. Total clients:", gameWs.clients.size);
@@ -282,12 +323,13 @@ export const handlers = [
     }, 100);
 
     client.addEventListener('message', (event) => {
-      // 🔴 受信自体ができているかログを出す
-      console.log("[MSW] Received message from client:", event.data);
+      // ログノイズ削減 - 受信ログはコメントアウト
+      // console.log("[MSW] Received message from client:", event.data);
       
       const data = JSON.parse(event.data as string);
       if (data.type === 'FETCH_PARTICIPANTS') {
-        console.log("[MSW] Manual fetch requested");
+        // ログノイズ削減 - fetchリクエストログはコメントアウト
+        // console.log("[MSW] Manual fetch requested");
         // 🔴 クロスブラウザ同期対応：localStorage から読み込み
         let participants = loadParticipantsFromStorage();
         if (participants.length === 0) {
@@ -298,8 +340,8 @@ export const handlers = [
             { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
           ];
         }
+        // setParticipants内で変更検出とbroadcastを行うので、ここでの追加broadcastは不要
         setParticipants(participants, "FETCH_PARTICIPANTS");
-        broadcastParticipants();
       }
 
       if (data.type === 'CLIENT_CONNECTED') {
@@ -399,7 +441,7 @@ export const handlers = [
         );
 
         if (timerInterval) clearInterval(timerInterval);
-        let seconds = 10; 
+        let seconds = 300; 
         timerInterval = setInterval(() => {
           seconds--;
           if (seconds < 0) {
@@ -422,5 +464,5 @@ export const handlers = [
       if (gameWs.clients.size === 0 && timerInterval) clearInterval(timerInterval);
     });
   }),
-  gameWs
+  gameWs,
 ];

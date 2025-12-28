@@ -3,6 +3,7 @@
 import {GameButton} from './game-button'
 import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
@@ -12,7 +13,14 @@ export default function TitleScreen() {
    const { 
     createRoom,
     globalError,
+    resetRoom,
   } = useRoomData();
+  
+  // title-screenに到達したときにroom contextの状態を完全にリセット
+  useEffect(() => {
+    console.log("[TitleScreen] Resetting room context for fresh start");
+    resetRoom();
+  }, [resetRoom]);
   
   const handleCreateRoom = async() => {
      try {

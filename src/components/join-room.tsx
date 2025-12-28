@@ -59,6 +59,7 @@ export default function JoinRoom() {
                 maxLength={6}
                 variant="primary"
                 textSize="text-2xl"
+                uppercase={false}
             />
             <TextInput
                 value={userName}
@@ -69,6 +70,7 @@ export default function JoinRoom() {
                 mode="edit"
                 uppercase={false}
                 textSize="text-base"
+                maxLength={20}
             />
           </div>
 

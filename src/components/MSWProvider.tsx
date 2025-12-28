@@ -11,6 +11,7 @@ export function MSWProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined") {
         const { worker } = await import("../mocks/browser");
         await worker.start({
+          quiet: true, // MSWのログを無効化してノイズを削減
           onUnhandledRequest: "bypass",
         });
         setMswReady(true);

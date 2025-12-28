@@ -37,7 +37,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
     ref,
   ) => {
 
-    {/*Input Colors Based on Variant */}
+    {/* Input Colors Based on Variant */}
     const getDisplayColors = () => {
       switch (variant) {
         case "primary":
@@ -51,7 +51,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
       }
     }
 
-    {/*Focus Border Colors Based on Variant */}
+    {/* Focus Border Colors Based on Variant */}
     const getFocusColors = () => {
       switch (variant) {
         case "primary":
@@ -67,26 +67,27 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
 
     const isInputtitleShown = inputtitle && inputtitle.trim() !== ""
 
-    {/* Determine if display mode should be shown */}
-    const shouldShowDisplay = mode === "display" || (mode === undefined && value.trim() !== "")
+    {/* 修正ポイント: modeがdisplayの時、または入力が完了している時に色を表示する */}
+    const shouldShowDisplay = mode === "display" || (mode !== "edit" && value.trim() !== "")
     const isDisabled = mode === "display"
 
     return (
-      <div className = {marginBottom}>
+      <div className={marginBottom}>
         {isInputtitleShown && <p className="text-xs text-gray-500 font-semibold mb-2">{inputtitle}</p>}
 
         {isDisabled ? (
-            <div className={`px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center`}>
+          <div className={`px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center`}>
             <p className={`${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'}`}>{value}</p>
           </div>
         ) : (
-            <div className="relative w-full">
-            {shouldShowDisplay && value.trim() !== "" && (
-                <div
-                className={`absolute inset-0 px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center`}
-                >
+          <div className="relative w-full">
+            {/* 入力完了後のデザインレイヤー */}
+            {shouldShowDisplay && (
+              <div
+                className={`absolute inset-0 px-4 ${height} border-2 rounded-xl ${getDisplayColors()} flex items-center justify-center pointer-events-none z-0`}
+              >
                 <p className={`${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'}`}>{value}</p>
-                </div>
+              </div>
             )}
 
             <input
@@ -98,10 +99,8 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
               maxLength={maxLength}
               disabled={isDisabled}
               className={`relative z-10 w-full px-4 ${height} ${
-                shouldShowDisplay && value.trim() ? "bg-transparent text-transparent" : "bg-white text-gray-700"
-              } border-2 ${
-                shouldShowDisplay && value.trim() ? "border-transparent" : "border-gray-300"
-              } rounded-xl ${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'} text-center placeholder:text-gray-400 focus:outline-none ${getFocusColors()} transition-all caret-gray-700`}
+                shouldShowDisplay ? "bg-transparent text-transparent border-transparent" : "bg-white text-gray-700 border-gray-300"
+              } border-2 rounded-xl ${textSize} font-bold ${isEmojiInput ? '' : 'tracking-widest'} text-center placeholder:text-gray-400 focus:outline-none ${getFocusColors()} transition-all caret-gray-700`}
             />
           </div>
         )}
