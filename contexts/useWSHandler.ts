@@ -131,6 +131,19 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                 // MSWは payload.participants に配列を入れているので、そこを参照する
                 const newParticipants = (payload.participants || []) as Participant[];
                 
+                // 変更がない場合は更新をスキップ（パフォーマンス最適化）
+                const hasChanged = 
+                    newParticipants.length !== prev.participantsList.length ||
+                    newParticipants.some((p, i) => 
+                        !prev.participantsList[i] || 
+                        p.user_id !== prev.participantsList[i].user_id ||
+                        p.is_Leader !== prev.participantsList[i].is_Leader
+                    );
+                
+                if (!hasChanged) {
+                    return prev; // 変更なしの場合は状態更新をスキップ
+                }
+                
                 // 参加者数が変わった場合のみログを出す
                 if (newParticipants.length !== prev.participantsList.length) {
                     console.log("[WS RECEIVED] Participants changed:", newParticipants.length, "people");

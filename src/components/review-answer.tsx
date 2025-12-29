@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { PageHeader } from "./page-header"
 import { TextInput } from "./text-input"
@@ -46,7 +46,7 @@ export function ReviewAnswer() {
         }
     }, [roomState, roomId])
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         if (isHost) {
             try {
                 await finishRoom();
@@ -57,7 +57,7 @@ export function ReviewAnswer() {
         } else {
             window.location.href = "/" 
         }
-    }
+    }, [isHost, finishRoom])
 
     return (
         <EmojiBackgroundLayout>

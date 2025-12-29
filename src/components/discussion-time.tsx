@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { PageHeader } from "./page-header"
 import { TextDisplay } from "./text-display"
@@ -55,17 +55,17 @@ export function DiscussionTime() {
     }
   }, [roomState, roomId, router, isLeader])
 
-  const handleToggleHintOverlay = () => {
+  const handleToggleHintOverlay = useCallback(() => {
     setShowHintOverlay(prev => !prev)
-  }
+  }, [])
 
-  const handleSkip = async () => {
+  const handleSkip = useCallback(async () => {
     try {
       await skipDiscussion();
     } catch (error) {
       console.error("Failed to skip discussion:", error);
     }
-  }
+  }, [skipDiscussion])
 
   return (
     <EmojiBackgroundLayout>

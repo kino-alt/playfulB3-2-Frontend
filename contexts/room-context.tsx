@@ -118,15 +118,19 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
  // FIX: Include all fields of RoomState
   const [state, setState] = useState<RoomState>(() => getInitialRoomState());
 
-  // localStorageに状態を保存
+  // localStorageに状態を保存（デバウンス処理）
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+    
+    const timeoutId = setTimeout(() => {
       try {
         localStorage.setItem('roomState', JSON.stringify(state));
       } catch (error) {
         console.error('[RoomContext] Failed to save to localStorage:', error);
       }
-    }
+    }, 500); // 500ms デバウンス
+    
+    return () => clearTimeout(timeoutId);
   }, [state]);
 
   const handleWS = useWsHandler(setState);
@@ -135,10 +139,14 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
 
   //check host
   // Host check based on participants list (fallback for test user "aa")
-  const amIHost = state.participantsList.some(
-    p => p.user_id === state.myUserId && p.role === 'host'
-  ) || (state.myUserId === "aa");
-  const maxEmoji = Math.max(0, state.participantsList.length - 1);
+  const amIHost = React.useMemo(
+    () => state.participantsList.some(p => p.user_id === state.myUserId && p.role === 'host') || (state.myUserId === "aa"),
+    [state.participantsList, state.myUserId]
+  );
+  const maxEmoji = React.useMemo(
+    () => Math.max(0, state.participantsList.length - 1),
+    [state.participantsList.length]
+  );
 
   // actions FIX:API設計に合わせる/useCallback関数使用-----------------------------
   // 1.1 Roomの作成 (POST /api/rooms)
@@ -251,7 +259,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       console.error("Failed to submit topic:", error);
       setState(prev => ({ ...prev, globalError: (error as any)?.message || "Failed to submit topic" }));
     }
-  }, [state.roomId,state.participantsList, state.myUserId, amIHost]);
+  }, [state.roomId, amIHost]);
 
   // 1.3 回答の提出 (POST /api/rooms/${room_id}/answer)
   const submitAnswer = useCallback(async (answer: string) => {
@@ -286,7 +294,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
     } catch (error) {
       console.error("Failed to submit answer:", error);
     }
-  }, [state.roomId, state.myUserId]); 
+  }, [state.roomId, state.myUserId, state.isLeader, state.topic, state.selectedEmojis, state.originalEmojis, state.displayedEmojis, state.dummyIndex, state.dummyEmoji, state.theme, state.hint]); 
 
   // start game
   const startGame = useCallback(async () => {
@@ -318,7 +326,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
     } catch (error) {
       console.error("Failed to finish room:", error);
     }
-  }, [state.roomId,state.participantsList, state.myUserId]);
+  }, [state.roomId, amIHost]);
 
   // タイトル画面に戻る時に状態とlocalStorageをクリア
   const resetRoom = useCallback(() => {
@@ -387,14 +395,12 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       }, state.myUserId, state.userName || "ゲスト");  // 🔴 userId と userName を渡す
 
       // Periodically refresh participant list to stay in sync
-      // 間隔を長くしてログノイズを削減 (3秒 → 10秒)
+      // 間隔を長くして負荷削減 (3秒 → 30秒)
       const fetchTimer = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-          // ログノイズ削減
-          // console.log("[Context] Periodic Fetch Request...");
           ws.send(JSON.stringify({ type: 'FETCH_PARTICIPANTS' }));
         }
-      }, 10000); // 3000ms → 10000ms (10秒)
+      }, 30000); // 30秒ごと（WebSocketイベントで即時更新されるため、低頻度でOK）
 
       return () => {
         console.log("[WS] Cleanup: Closing connection");
@@ -402,7 +408,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
         ws.close();
       };
     }
-  }, [state.roomId, state.myUserId]);
+  }, [state.roomId, state.myUserId, state.userName]);
 
   // Debug: participantsList の更新監視 (コメントアウト - ログノイズ削減)
   // useEffect(() => {
