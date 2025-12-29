@@ -13,6 +13,8 @@ import { GameState } from "@/contexts/types";
 
 export function DiscussionTime() {
   const [showHintOverlay, setShowHintOverlay] = useState(false);
+  const [preCountdown, setPreCountdown] = useState<number>(5);
+  const [isStarting, setIsStarting] = useState<boolean>(false);
   const router = useRouter();
   const {
     roomId,
@@ -23,6 +25,27 @@ export function DiscussionTime() {
     skipDiscussion,
   } = useRoomData();
   
+  // Start a 5-second pre-discussion countdown when entering DISCUSSING
+  useEffect(() => {
+    if (roomState === GameState.DISCUSSING) {
+      setIsStarting(true);
+      setPreCountdown(5);
+      const id = setInterval(() => {
+        setPreCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(id);
+            setIsStarting(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(id);
+    } else {
+      setIsStarting(false);
+    }
+  }, [roomState]);
+
   useEffect(() => { 
     if (roomState === GameState.ANSWERING && roomId) {
       if(isLeader)
@@ -46,6 +69,45 @@ export function DiscussionTime() {
 
   return (
     <EmojiBackgroundLayout>
+      {/* Pre-start overlay: shows before discussion begins */}
+      {roomState === GameState.DISCUSSING && isStarting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+          <div className="relative group">
+            <div className="absolute -inset-4 bg-amber-500/20 rounded-full blur-2xl animate-pulse"></div>
+            
+            <div className="relative bg-white border-[3px] border-amber-400 rounded-[3rem] px-10 py-8 text-center shadow-[0_12px_0_0_#f59e0b]">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[10px] font-black px-4 py-1 rounded-full shadow-md uppercase tracking-[0.2em] whitespace-nowrap">
+                Attention Players
+              </div>
+
+              <div className="mt-2">
+                <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Discussion starts in
+                </h2>
+                
+                <div className="relative inline-block">
+                  <span className="text-8xl font-black text-amber-500 tabular-nums leading-none drop-shadow-sm">
+                    {preCountdown}
+                  </span>
+                  <span className="absolute inset-0 text-8xl font-black text-amber-200/30 blur-sm -z-10 tabular-nums">
+                    {preCountdown}
+                  </span>
+                </div>
+              </div>
+              <div className="flex justify-center gap-1 mt-4">
+                {[...Array(3)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      i < (3 - (preCountdown % 3)) ? 'w-8 bg-amber-500' : 'w-2 bg-amber-100'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <Modal 
         isOpen={showHintOverlay}
         onClose={handleToggleHintOverlay}
@@ -135,8 +197,8 @@ export function DiscussionTime() {
         {/* 3. Footer Button Area */}
         <div className="mt-auto ">
           {isLeader ? (
-            <GameButton onClick={handleSkip} variant="secondary">
-              SKIP DISCUSSION
+            <GameButton onClick={handleSkip} variant="secondary" disabled={isStarting}>
+              {isStarting ? "Starting..." : "SKIP DISCUSSION"}
             </GameButton>
           ) : (
             <div className="h-[52px]"></div>

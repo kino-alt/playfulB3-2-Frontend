@@ -36,6 +36,8 @@ export function ReviewAnswer() {
             dummyEmoji,
             isHost,
         });
+        console.log("[ReviewAnswer] isDummyMode would be:", originalEmojis.length > 0 && dummyIndex !== null && dummyIndex !== undefined);
+        console.log("[ReviewAnswer] Will show emojis:", displayedEmojis.length > 0 ? displayedEmojis : selectedEmojis);
     }, [selectedEmojis, originalEmojis, displayedEmojis, dummyIndex, dummyEmoji, isHost]);
 
     useEffect(() => {

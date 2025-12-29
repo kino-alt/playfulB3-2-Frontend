@@ -224,6 +224,10 @@ export const handlers = [
             data: {
               topic: gameData.topic,
               selected_emojis: gameData.emojis,
+              displayedEmojis: gameData.displayedEmojis,
+              originalEmojis: gameData.originalEmojis,
+              dummyIndex: gameData.dummyIndex,
+              dummyEmoji: gameData.dummyEmoji,
               theme: gameData.theme,
               hint: gameData.hint,
               assignments,
@@ -232,40 +236,42 @@ export const handlers = [
         })
       );
       
-      // タイマー開始 (3分 = 180秒)
+      // タイマー開始 (10分 = 600秒) ※開始を5秒遅延
       if (timerInterval) clearInterval(timerInterval);
-      let seconds = 180;
-      timerInterval = setInterval(() => {
-        seconds--;
-        if (seconds < 0) {
-          clearInterval(timerInterval!);
-          // ANSWERING 状態に遷移する際にもダミーデータを送信
-          gameWs.broadcast(
-            JSON.stringify({
-              type: 'STATE_UPDATE',
-              payload: {
-                nextState: "answering",
-                data: {
-                  topic: gameData.topic,
-                  selected_emojis: gameData.emojis,
-                  originalEmojis: gameData.originalEmojis,
-                  displayedEmojis: gameData.displayedEmojis,
-                  dummyIndex: gameData.dummyIndex,
-                  dummyEmoji: gameData.dummyEmoji,
-                  theme: gameData.theme,
-                  hint: gameData.hint,
+      setTimeout(() => {
+        let seconds = 600;
+        timerInterval = setInterval(() => {
+          seconds--;
+          if (seconds < 0) {
+            clearInterval(timerInterval!);
+            // ANSWERING 状態に遷移する際にもダミーデータを送信
+            gameWs.broadcast(
+              JSON.stringify({
+                type: 'STATE_UPDATE',
+                payload: {
+                  nextState: "answering",
+                  data: {
+                    topic: gameData.topic,
+                    selected_emojis: gameData.emojis,
+                    originalEmojis: gameData.originalEmojis,
+                    displayedEmojis: gameData.displayedEmojis,
+                    dummyIndex: gameData.dummyIndex,
+                    dummyEmoji: gameData.dummyEmoji,
+                    theme: gameData.theme,
+                    hint: gameData.hint,
+                  }
                 }
-              }
-            })
+              })
+            );
+            return;
+          }
+          const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+          const sec = (seconds % 60).toString().padStart(2, '0');
+          gameWs.broadcast(
+            JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } })
           );
-          return;
-        }
-        const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const sec = (seconds % 60).toString().padStart(2, '0');
-        gameWs.broadcast(
-          JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } })
-        );
-      }, 1000);
+        }, 1000);
+      }, 5000);
     }, 100);
     
     await delay(300);
@@ -302,7 +308,7 @@ export const handlers = [
       timerInterval = null;
     }
     
-    // 即座にANSWERING状態に遷移
+    // 即座にANSWERING状態に遷移（ダミーデータも含める）
     gameWs.broadcast(
       JSON.stringify({
         type: 'STATE_UPDATE',
@@ -311,6 +317,10 @@ export const handlers = [
           data: {
             topic: gameData.topic,
             selected_emojis: gameData.emojis,
+            originalEmojis: gameData.originalEmojis,
+            displayedEmojis: gameData.displayedEmojis,
+            dummyIndex: gameData.dummyIndex,
+            dummyEmoji: gameData.dummyEmoji,
             theme: gameData.theme,
             hint: gameData.hint,
           }
@@ -416,21 +426,9 @@ export const handlers = [
         return;
       }
 
-      if (data.type === 'SUBMIT_TOPIC') {
-        // 🔴 クライアントから送信されたダミーデータを保存
-        const { topic, emojis, originalEmojis, dummyIndex, dummyEmoji } = data.payload;
-        gameData.topic = topic;
-        gameData.emojis = emojis;  // displayedEmojis（ダミー混入版）
-        gameData.originalEmojis = originalEmojis;
-        gameData.displayedEmojis = emojis;  // displayedEmojiと同じ
-        gameData.dummyIndex = dummyIndex;
-        gameData.dummyEmoji = dummyEmoji;
-        console.log("[MSW] SUBMIT_TOPIC received with dummy data:", { originalEmojis, displayedEmojis: emojis, dummyIndex, dummyEmoji });
-        return;
-      }
-
       if (data.type === 'ANSWERING') {
         // 🔴 ANSWERING メッセージから answer と topic/emojis を取得（クロスウィンドウ対応）
+        console.log("[MSW] ANSWERING received, payload:", data.payload);
         gameData.answer = data.payload.answer;
         if (data.payload.topic) gameData.topic = data.payload.topic;
         if (data.payload.selected_emojis) gameData.emojis = data.payload.selected_emojis;
@@ -448,6 +446,7 @@ export const handlers = [
           answer: gameData.answer,
           selected_emojis: gameData.emojis,
           displayedEmojis: gameData.displayedEmojis,
+          originalEmojis: gameData.originalEmojis,
           dummyIndex: gameData.dummyIndex,
         });
         
@@ -471,6 +470,7 @@ export const handlers = [
             }
           })
         );
+        console.log("[MSW] CHECKING broadcast sent with:", { displayedEmojis: gameData.displayedEmojis, originalEmojis: gameData.originalEmojis, dummyIndex: gameData.dummyIndex });
         return;
       }
 
@@ -488,6 +488,10 @@ export const handlers = [
               data: {
                 topic: data.payload.topic,
                 selected_emojis: data.payload.emojis,
+                displayedEmojis: data.payload.displayedEmojis || data.payload.emojis,
+                originalEmojis: data.payload.originalEmojis || [],
+                dummyIndex: data.payload.dummyIndex,
+                dummyEmoji: data.payload.dummyEmoji,
                 assignments: buildAssignments(data.payload.emojis),
               }
             }
@@ -495,22 +499,38 @@ export const handlers = [
         );
 
         if (timerInterval) clearInterval(timerInterval);
-        let seconds = 300; 
-        timerInterval = setInterval(() => {
-          seconds--;
-          if (seconds < 0) {
-            clearInterval(timerInterval!);
+        // タイマー開始を5秒遅延し、10分(600秒)に設定
+        setTimeout(() => {
+          let seconds = 600; 
+          timerInterval = setInterval(() => {
+            seconds--;
+            if (seconds < 0) {
+              clearInterval(timerInterval!);
+              gameWs.broadcast(
+                JSON.stringify({ 
+                  type: 'STATE_UPDATE', 
+                  payload: { 
+                    nextState: "answering",
+                    data: {
+                      topic: gameData.topic,
+                      selected_emojis: gameData.emojis,
+                      originalEmojis: gameData.originalEmojis,
+                      displayedEmojis: gameData.displayedEmojis,
+                      dummyIndex: gameData.dummyIndex,
+                      dummyEmoji: gameData.dummyEmoji,
+                    }
+                  } 
+                })
+              );
+              return;
+            }
+            const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const sec = (seconds % 60).toString().padStart(2, '0');
             gameWs.broadcast(
-              JSON.stringify({ type: 'STATE_UPDATE', payload: { nextState: "answering" } })
+              JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } })
             );
-            return;
-          }
-          const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-          const sec = (seconds % 60).toString().padStart(2, '0');
-          gameWs.broadcast(
-            JSON.stringify({ type: 'TIMER_TICK', payload: { time: `${min}:${sec}` } })
-          );
-        }, 1000);
+          }, 1000);
+        }, 5000);
       }
     });
 
