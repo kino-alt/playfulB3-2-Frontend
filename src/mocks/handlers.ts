@@ -236,10 +236,10 @@ export const handlers = [
         })
       );
       
-      // タイマー開始 (10分 = 600秒) ※開始を5秒遅延
+      // タイマー開始 (5分 = 300秒) ※開始を5秒遅延
       if (timerInterval) clearInterval(timerInterval);
       setTimeout(() => {
-        let seconds = 600;
+        let seconds = 300;
         timerInterval = setInterval(() => {
           seconds--;
           if (seconds < 0) {
@@ -499,9 +499,9 @@ export const handlers = [
         );
 
         if (timerInterval) clearInterval(timerInterval);
-        // タイマー開始を5秒遅延し、10分(600秒)に設定
+        // タイマー開始を5秒遅延し、5分(300秒)に設定
         setTimeout(() => {
-          let seconds = 600; 
+          let seconds = 300; 
           timerInterval = setInterval(() => {
             seconds--;
             if (seconds < 0) {

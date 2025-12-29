@@ -12,7 +12,7 @@ export function CountTimer({ timervalue, height = "py-8" }: CountTimerProps) {
     <>
       {/* Timer Display */}
       <TextInput
-        value={timervalue || "10:00"}
+        value={timervalue || "05:00"}
         onChange={() => {}}
         inputtitle=""
         placeholder=""
