@@ -71,7 +71,7 @@ export default function SubmitAnswer() {
           <TextInput
               value={answerInput}
               onChange={setAnswerInput}
-              inputtitle=""
+              inputtitle="ANSWER"
               placeholder="Enter answer"
               maxLength={20}
               height="py-5"

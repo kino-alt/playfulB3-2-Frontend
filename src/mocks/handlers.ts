@@ -232,9 +232,9 @@ export const handlers = [
         })
       );
       
-      // タイマー開始
+      // タイマー開始 (3分 = 180秒)
       if (timerInterval) clearInterval(timerInterval);
-      let seconds = 10;
+      let seconds = 180;
       timerInterval = setInterval(() => {
         seconds--;
         if (seconds < 0) {

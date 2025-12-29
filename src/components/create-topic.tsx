@@ -85,7 +85,7 @@ export function CreateTopic() {
         <PageHeader title="Set the Topic" subtitle="Prepare your quiz" marginBottom="mb-2" />
         
         <TextDisplay
-          value={theme || "N/A"}
+          value={"テーマ: " + (theme || "N/A")}
           inputtitle=""
           height="py-0.5"
           variant="primary"
@@ -112,6 +112,7 @@ export function CreateTopic() {
               if (step === "emoji") setStep("topic"); 
             }}
             placeholder={hint ? `Ex. ${hint}` : "Enter your topic"}
+            inputtitle="TOPIC"
             height="py-3"
             variant="primary"
             textSize="text-xl"
@@ -130,7 +131,7 @@ export function CreateTopic() {
                 <TextInput
                   value={emojiInput}
                   onChange={() => {}} 
-                  inputtitle="" 
+                  inputtitle="EMOJI" 
                   placeholder=""
                   height="py-8"
                   variant="gray"

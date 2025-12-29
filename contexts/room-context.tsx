@@ -42,6 +42,7 @@ const getInitialRoomState = (): RoomState => {
         roomId: parsed.roomId || null,
         roomCode: parsed.roomCode || undefined,
         myUserId: parsed.myUserId || null,
+        userName: parsed.userName || null,
         isLeader: parsed.isLeader || false,
         topic: parsed.topic || null,
         theme: parsed.theme || null,
@@ -68,6 +69,7 @@ const getInitialRoomState = (): RoomState => {
     roomId: null,
     roomCode: undefined,
     myUserId: null,
+    userName: null,
     isLeader: false,
     topic: null,
     theme: null,
@@ -183,7 +185,8 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
     const newState = {
       roomId: data.room_id,
       roomCode,
-      myUserId: data.user_id, 
+      myUserId: data.user_id,
+      userName: userName,  // ユーザー名を保存
       isLeader: String(data.is_leader) === "true" || data.is_leader === true,
     };
     setState((prev) => ({
@@ -381,7 +384,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
           // ログノイズ削減
           // console.log("[Context] onMessage received:", data);
           handlerRef.current(data);
-      }, state.myUserId, state.roomCode || "ゲスト");  // 🔴 userId と userName を渡す
+      }, state.myUserId, state.userName || "ゲスト");  // 🔴 userId と userName を渡す
 
       // Periodically refresh participant list to stay in sync
       // 間隔を長くしてログノイズを削減 (3秒 → 10秒)

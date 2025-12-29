@@ -7,7 +7,7 @@ interface CountTimerProps {
   height?: string // 高さを指定するプロパティを追加
 }
 
-export function CountTimer({ timervalue, height = "py-10" }: CountTimerProps) {
+export function CountTimer({ timervalue, height = "py-8" }: CountTimerProps) {
     return (
     <>
       {/* Timer Display */}

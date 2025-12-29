@@ -20,7 +20,8 @@ export interface Participant {
 export interface RoomState {
     roomId: string | null;      
     roomCode?: string | null;    
-    myUserId: string | null ; 
+    myUserId: string | null ;
+    userName?: string | null;    // ユーザー名を保存
     isLeader: boolean;         
     topic: string | null;
     theme: string | null;   //FIX: Add

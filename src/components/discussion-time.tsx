@@ -99,7 +99,7 @@ export function DiscussionTime() {
             </div>
 
             {/* メインコンテナ */}
-            <div className="relative w-full h-[180px] bg-white border-[3px] border-gray-300 rounded-[3rem] shadow-[0_8px_0_0_rgba(245,158,11,0.5)] flex items-center justify-center">
+            <div className="relative w-full h-[160px] bg-white border-[3px] border-gray-300 rounded-[3rem] shadow-[0_8px_0_0_rgba(245,158,11,0.5)] flex items-center justify-center">
               {/* 吹き出しのしっぽ */}
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-white border-b-[3px] border-r-[3px] border-gray-300 rotate-45 rounded-sm"></div>               
               {/* 絵文字 */}

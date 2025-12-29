@@ -26,7 +26,7 @@ export function DisplaySelectedEmojis({ selectedEmojis, handleRemoveEmoji, maxEm
             <div key={index} className="relative aspect-square">
               {selectedEmojis[index] ? (
                 <div className="relative w-full h-full">
-                  <div className="w-full h-full bg-white border-2 border-amber-300 rounded-lg flex items-center justify-center text-2xl">
+                  <div className="w-full h-full bg-white border-2 border-amber-400/60 rounded-lg flex items-center justify-center text-2xl">
                     {selectedEmojis[index]}
                   </div>
                   {isEditable && (

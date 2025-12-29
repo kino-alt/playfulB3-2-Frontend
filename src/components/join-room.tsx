@@ -99,7 +99,7 @@ export default function JoinRoom() {
             <TextInput
                 value={userName}
                 onChange={setUserName}
-                inputtitle="User Name"
+                inputtitle="Name"
                 placeholder="Enter user name"
                 height="py-1"
                 variant="gray"
