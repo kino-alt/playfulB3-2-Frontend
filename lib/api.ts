@@ -1,12 +1,13 @@
 // lib/api.ts
 
-// HTTP base endpoint. Set to your Go API origin (e.g., https://api.example.com).
-const API_BASE_URL = ""; 
+// HTTP base endpoint. Override via NEXT_PUBLIC_API_BASE_URL.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
-// WebSocket base endpoint. Defaults to the current host; override if WS is on another host/port.
-const WS_BASE_URL = typeof window !== 'undefined' 
-  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
-  : "";
+// WebSocket base endpoint. Override via NEXT_PUBLIC_WS_BASE_URL when backend runs elsewhere.
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL
+  || (typeof window !== 'undefined'
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+    : "");
 
 //FIX: API設計に合わせて、StartGame削除
 export const api = {
@@ -22,7 +23,11 @@ export const api = {
       body: JSON.stringify({}),
     });
 
-    if (!response.ok) throw new Error("Failed to create room");
+    if (!response.ok) {
+      let details = "";
+      try { details = await response.text(); } catch {}
+      throw new Error(`Failed to create room (status ${response.status}) ${details}`);
+    }
     // res: { room_id, user_id, room_code, theme, hint } 
     return response.json();
   },

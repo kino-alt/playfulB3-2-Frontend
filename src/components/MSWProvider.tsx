@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+const shouldUseMsw = (process.env.NEXT_PUBLIC_USE_MSW ?? "true") !== "false";
+
 export function MSWProvider({ children }: { children: React.ReactNode }) {
   const [mswReady, setMswReady] = useState(false);
 
   useEffect(() => {
+    if (!shouldUseMsw) return;
+
     const initMsw = async () => {
       if (typeof window === "undefined") return;
 
@@ -13,9 +17,9 @@ export function MSWProvider({ children }: { children: React.ReactNode }) {
       await worker.start({
         serviceWorker: {
           url: "/mockServiceWorker.js",
-          options: { scope: "/" }, // ルート配下のリクエストを確実に捕捉
+          options: { scope: "/" }, // capture all routes
         },
-        onUnhandledRequest: "warn", // 未ハンドルは警告
+        onUnhandledRequest: "warn",
         quiet: false,
       });
       setMswReady(true);
@@ -23,9 +27,7 @@ export function MSWProvider({ children }: { children: React.ReactNode }) {
     initMsw();
   }, []);
 
-  if (!mswReady) {
-    return <div className="flex h-screen items-center justify-center">Loading Mock API...</div>;
-  }
-
+  if (!shouldUseMsw) return <>{children}</>;
+  if (!mswReady) return <div className="flex h-screen items-center justify-center">Loading Mock API...</div>;
   return <>{children}</>;
 }
