@@ -1,4 +1,4 @@
-import TitleScreen from '@/components/title-screen'
+import TitleScreen from '@/src/components/title-screen'
 
 export const metadata = {
   title: 'Game Title Screen',

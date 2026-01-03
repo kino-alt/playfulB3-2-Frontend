@@ -1,16 +1,12 @@
-import {DiscussionTime} from "@/components/discussion-time"
-import { RoomProvider } from '@/contexts/room-context';
+import {DiscussionTime} from "@/src/components/discussion-time"
 
-export default async function DiscussionTimePage({
- params,
+export default function DiscussionTimePage({
+  params,
 }: {
-  params: { id: string } 
+  params: { id: string }
 }) {
-  const { id } = params
-
-  return(
-    <RoomProvider initialRoomId={id}>
-      <DiscussionTime />
-    </RoomProvider>
+  // const { id } = params;
+  return (
+    <DiscussionTime />
   )
 }

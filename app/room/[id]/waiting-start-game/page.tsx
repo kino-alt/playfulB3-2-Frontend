@@ -1,16 +1,12 @@
-import WaitingStartGame from "@/components/waiting-start-game"
-import { RoomProvider } from '@/contexts/room-context';
+import WaitingStartGame from "@/src/components/waiting-start-game"
 
-export default async function WaitingStartGamePage({
+export default function WaitingStartGamePage({
   params,
 }: {
-  params: { id: string } 
+  params: { id: string }
 }) {
-  const { id } = params
-
-return(
-  <RoomProvider initialRoomId={id}>
-     <WaitingStartGame/>
-     </RoomProvider>
+  // const { id } = params;
+  return (
+    <WaitingStartGame />
   )
 }

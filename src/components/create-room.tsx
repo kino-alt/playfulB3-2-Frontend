@@ -11,6 +11,12 @@ import { TextInput } from "./text-input"
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
 
+// Format room code with hyphen (e.g., ABC-123)
+const formatRoomCode = (code: string) => {
+  if (!code || code.length <= 3) return code;
+  return `${code.slice(0, 3)}-${code.slice(3)}`;
+};
+
 export default function CreateRoom() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -32,9 +38,10 @@ export default function CreateRoom() {
 
   {/* push next page*/}
   useEffect(() => {
-    // roomState が SETTING_TOPIC に変わったら画面遷移
+    console.log("Current Room State:", roomState); // デバッグ用
     if (roomState === GameState.SETTING_TOPIC && roomCode) {
-         router.push(`/room/${roomId}/create-topic`);
+      console.log("Navigating to create-topic...");
+      router.push(`/room/${roomId}/create-topic`);
     }
   }, [roomState, roomId, router]);
 
@@ -68,7 +75,7 @@ export default function CreateRoom() {
         
         {/* Room Code Display */}
         <TextInput
-            value={isLoading ? "Loading..." : roomCode || "N/A"}
+            value={isLoading ? "Loading..." : (roomCode ? formatRoomCode(roomCode) : "N/A")}
             onChange={() => {}}
             inputtitle="Room Code"
             height = "py-3"
@@ -82,8 +89,8 @@ export default function CreateRoom() {
 
         {/* Start Button */}
         <div className="mt-auto">
-          {GameState.WAITING && (
-              <GameButton variant="primary" onClick={handleStartGame} disabled={ParticipantList.length < 4 || ParticipantList.length > 8}>
+          {roomState === GameState.WAITING && (
+              <GameButton variant="primary" onClick={handleStartGame} disabled={participantsList.length < 4 || participantsList.length > 6 || isLoading}>
                   Start Game 
               </GameButton>
           )}

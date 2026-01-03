@@ -1,16 +1,12 @@
-import SubmitAnswer from "@/components/submit-answer"
-import { RoomProvider } from '@/contexts/room-context';
+import SubmitAnswer from "@/src/components/submit-answer"
 
-export default async function SubmitAnswerPage({
- params,
+export default function SubmitAnswerPage({
+  params,
 }: {
-  params: { id: string } 
+  params: { id: string }
 }) {
-  const { id } = params
-
-return(
-  <RoomProvider initialRoomId={id}>
-     <SubmitAnswer />
-  </RoomProvider>
-)
+  // const { id } = params;
+  return (
+    <SubmitAnswer />
+  )
 }

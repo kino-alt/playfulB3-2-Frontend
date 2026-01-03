@@ -1,4 +1,4 @@
-import WaitingCreateTopic from "@/components/waiting-create-topic"
+import WaitingCreateTopic from "@/src/components/waiting-create-topic"
 import { RoomProvider } from '@/contexts/room-context';
 
 export default async function WaitingCreateTopicPage(){

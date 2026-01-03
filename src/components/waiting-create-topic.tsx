@@ -3,7 +3,7 @@ import { useEffect } from "react"
 import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { PageHeader } from "./page-header"
 import { WaitingAnimation } from "./waiting-animation"
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
@@ -30,7 +30,7 @@ export default function WaitingCreateTopic() {
 
         {/* Waiting animation */}
         <div className="flex flex-col items-center flex-1 justify-center">
-          <WaitingAnimation variant="secondary" />
+          <WaitingAnimation variant="secondary" inputText="ホストの操作"/>
         </div>
 
       </div>

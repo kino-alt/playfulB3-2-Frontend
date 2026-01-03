@@ -3,12 +3,35 @@
 import {GameButton} from './game-button'
 import { EmojiBackgroundLayout } from "./emoji-background-layout"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+//FIX: Add
+import { useRoomData } from '@/contexts/room-context';
+import { GameState } from "@/contexts/types";
 
 export default function TitleScreen() {
   const router = useRouter()
+   const { 
+    createRoom,
+    globalError,
+    resetRoom,
+  } = useRoomData();
   
-  const handleCreateRoom = () => {
-    router.push("/create-room")
+  // title-screenに到達したときにroom contextの状態を完全にリセット
+  useEffect(() => {
+    console.log("[TitleScreen] Resetting room context for fresh start");
+    resetRoom();
+  }, [resetRoom]);
+  
+  const handleCreateRoom = async() => {
+     try {
+      console.log("[v0] Starting game for room:")
+      await createRoom();    
+      console.log("[Title] Success, navigating to create-room");
+      router.push("/create-room");
+    } catch (error) {
+      console.error("Error starting game:", error)
+      alert("Failed to start game")
+    }
   }
 
   const handleJoinRoom = () => {

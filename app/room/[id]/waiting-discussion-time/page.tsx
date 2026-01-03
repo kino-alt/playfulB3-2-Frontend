@@ -1,16 +1,12 @@
-import {WaitingDiscussionTime} from "@/components/wating-discussion-time"
-import { RoomProvider } from '@/contexts/room-context';
+import {WaitingDiscussionTime} from "@/src/components/wating-discussion-time"
 
-export default async function WaitingDiscussionTimePage({
- params,
+export default function WaitingDiscussionTimePage({
+  params,
 }: {
-  params: { id: string } 
+  params: { id: string }
 }) {
-  const { id } = params
-
-return(
-  <RoomProvider initialRoomId={id}>
-    <WaitingDiscussionTime/>
-  </RoomProvider>
-)
+  // const { id } = params;
+  return (
+    <WaitingDiscussionTime />
+  )
 }

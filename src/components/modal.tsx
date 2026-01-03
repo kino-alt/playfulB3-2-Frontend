@@ -26,7 +26,7 @@ export function Modal({ isOpen, onClose, title, content }: ModalProps) {
         onClick={(e) => e.stopPropagation()} //prevent closing when clicking inside
       >
         <h3 className="text-xl font-bold text-gray-800 mb-4">{title}</h3>
-        <div className="text-gray-600 mb-6">
+        <div className="whitespace-pre-line text-gray-600 mb-6">
           {content}
         </div>
         

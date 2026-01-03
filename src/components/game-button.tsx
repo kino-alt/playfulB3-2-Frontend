@@ -3,17 +3,15 @@
 import type React from "react"
 
 {/* Props Interface */}
-interface GameButtonProps {
+interface GameButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: "primary" | "secondary"
-  onClick?: () => void
   children: React.ReactNode
   subtitle?: string
   icon?: string
-  disabled?: boolean
   height?:string
 }
 
-export function GameButton({ variant, onClick, children, subtitle, icon, disabled,height="p-4"}: GameButtonProps) {
+export function GameButton({ variant, children, subtitle, icon, height="p-4",className, ...props}: GameButtonProps) {
   {/* Base and Variant Classes */}
   const baseClass =
     'w-full rounded-xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:-translate-y-0.5 border-2'
@@ -31,7 +29,10 @@ export function GameButton({ variant, onClick, children, subtitle, icon, disable
   }
 
   return (
-    <button onClick={onClick} disabled={disabled} className={`${height} ${baseClass} ${variantClass[variant]} group ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}>
+    <button 
+      {...props} // 🔴 ここで type="submit" や disabled が適用される
+      className={`${height} ${baseClass} ${variantClass[variant]} group ${props.disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+    >
       <div
         className={`flex flex-row items-center justify-center gap-2 font-bold uppercase text-sm tracking-wide ${textColorClass[variant]}`}
       >
