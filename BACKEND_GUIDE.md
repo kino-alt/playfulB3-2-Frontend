@@ -1,5 +1,16 @@
 # Backend Implementation Guide
 
+## WebSocket接続
+
+**エンドポイント:** `ws://localhost:8080/ws?room_id={room_id}`
+
+**接続時の動作:**
+1. クライアントは `?room_id=` パラメータでルームIDを指定
+2. サーバーは接続を確立後、参加者リスト（PARTICIPANT_UPDATE）を自動送信すべき
+3. クライアントから FETCH_PARTICIPANTS で手動取得も可能
+
+---
+
 ## 必須データ構造
 
 ### ゲームデータ保持

@@ -150,9 +150,13 @@ export const api = {
   /** -------------------------------
    * 議論をスキップして回答フェーズへ遷移 (POST /api/rooms/{room_id}/skip-discussion)
    * ------------------------------- */
-  skipDiscussion: async (roomId: string) => {
+  skipDiscussion: async (roomId: string, userId: string) => {
     const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/skip-discussion`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: userId }),
     });
 
     if (!response.ok) throw new Error("Failed to skip discussion");
@@ -166,7 +170,7 @@ export const api = {
   connectWebSocket: (roomId: string, onMessage: (data: any) => void, userId?: string, userName?: string) => {
     if (!roomId) return { close: () => {} } as any;
 
-    const url = `${WS_BASE_URL}/api/rooms/${roomId}/ws`;
+    const url = `${WS_BASE_URL}/ws?room_id=${roomId}`;
     const ws = new WebSocket(url);
 
     ws.onmessage = (event) => {

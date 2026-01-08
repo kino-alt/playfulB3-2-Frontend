@@ -246,8 +246,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
         ws.send(JSON.stringify({ 
           type: 'SUBMIT_TOPIC',
           payload: { 
-            topic, 
-            emojis: dummyResult.displayedEmojis,  // プレイヤー用：ダミー混入版
+            displayedEmojis: dummyResult.displayedEmojis,  // ダミー含めた絵文字配列（4〜6個）
             originalEmojis: dummyResult.originalEmojis,  // ホスト確認用
             dummyIndex: dummyResult.dummyIndex,
             dummyEmoji: dummyResult.dummyEmoji,
@@ -368,14 +367,18 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       console.log("[Room Context] No roomId to skip discussion");
       return;
     }
+    if (!state.myUserId) {
+      console.log("[Room Context] No myUserId to skip discussion");
+      return;
+    }
     try {
       console.log("[Room Context] Skipping discussion...");
-      await api.skipDiscussion(state.roomId);
+      await api.skipDiscussion(state.roomId, state.myUserId);
       console.log("[Room Context] Discussion skipped, moving to answering phase");
     } catch (error) {
       console.error("Failed to skip discussion:", error);
     }
-  }, [state.roomId]);
+  }, [state.roomId, state.myUserId]);
 
   // WebSocket ---------------------------------
  useEffect(() => {
