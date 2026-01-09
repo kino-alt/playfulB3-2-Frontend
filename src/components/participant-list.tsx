@@ -1,11 +1,12 @@
 // participant-list.tsx (修正後)
+import { memo } from 'react';
 import { Participant } from '@/contexts/types'; // types.tsからParticipantをインポートすることを想定
 
 interface ParticipantListProps {
   participants: Participant[] 
 }
 
-export function ParticipantList({ participants }: ParticipantListProps) {
+function ParticipantListComponent({ participants }: ParticipantListProps) {
   console.log("ParticipantList Received:", participants);
   // ホストを除外する
   const players = participants.filter(p => p.role !== 'host');
@@ -51,3 +52,5 @@ export function ParticipantList({ participants }: ParticipantListProps) {
     </div>
   );
 }
+
+export const ParticipantList = memo(ParticipantListComponent);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { GameButton } from "./game-button"
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import dynamic from 'next/dynamic'
 import { PageHeader } from "./page-header"
 import { useRouter } from "next/navigation"
 import { TextInput } from "./text-input"
@@ -10,33 +10,96 @@ import { TextDisplay } from "./text-display"
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
 
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
+
 export default function SubmitAnswer() {
   const [answerInput, setAnswerInput] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
   const { 
       roomId,
       roomCode,
       roomState,
-      submitAnswer
+      submitAnswer,
+      isLeader
   } = useRoomData();
+
+  // デバッグ: isLeaderの状態を確認
+  useEffect(() => {
+    console.log('[SubmitAnswer] Component state:', { 
+      roomState, 
+      isLeader, 
+      roomId,
+      canSubmit: roomState === GameState.ANSWERING 
+    });
+  }, [roomState, isLeader, roomId]);
+
+  // リロード時に入力内容を復元
+  useEffect(() => {
+    if (typeof window === 'undefined' || !roomId) return;
+    const storageKey = `submitAnswer_draft_${roomId}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      setAnswerInput(saved);
+      console.log('[SubmitAnswer] Restored draft:', saved);
+    }
+  }, [roomId]);
+
+  // 入力内容をlocalStorageに保存
+  useEffect(() => {
+    if (typeof window === 'undefined' || !roomId) return;
+    const storageKey = `submitAnswer_draft_${roomId}`;
+    if (answerInput) {
+      localStorage.setItem(storageKey, answerInput);
+    }
+  }, [answerInput, roomId]);
 
   useEffect(() => {
     if (roomState === GameState.CHECKING && roomCode) {
+      // 画面遷移時にドラフトをクリア
+      if (typeof window !== 'undefined' && roomId) {
+        localStorage.removeItem(`submitAnswer_draft_${roomId}`);
+      }
       router.push(`/room/${roomId}/review-answer`);
     }
   }, [roomState, roomId, router, roomCode])
 
   const handleSubmitAnswer = async () => {
-    if (!answerInput) return
+    if (!answerInput.trim() || isSubmitting) return;
+    
+    // ANSWERING状態でこの画面にいる場合、リーダーとみなす
+    const isInAnsweringState = roomState === GameState.ANSWERING;
+    console.log('[SubmitAnswer] Submitting answer:', { 
+      answerInput, 
+      isLeader, 
+      roomState,
+      isInAnsweringState 
+    });
+    
+    if (!isInAnsweringState && !isLeader) {
+      console.error('[SubmitAnswer] User is not in ANSWERING state and not a leader');
+      alert('Only the leader can submit an answer during the answering phase.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
-        await submitAnswer(answerInput); 
+        await submitAnswer(answerInput.trim()); 
+        console.log('[SubmitAnswer] Answer submitted successfully');
+        // ドラフトをクリア
+        if (typeof window !== 'undefined' && roomId) {
+          localStorage.removeItem(`submitAnswer_draft_${roomId}`);
+        }
     } catch (error) {
-        console.error("Error submitting answer:", error);
+        console.error("[SubmitAnswer] Error submitting answer:", error);
+        alert('Failed to submit answer. Please try again.');
+        setIsSubmitting(false);
     }
   }
 
   return (
-    <EmojiBackgroundLayout>
+    <EmojiBackgroundLayoutNoSSR>
       <div className="w-full max-w-xs flex flex-col h-full mx-auto">
         {/* Header */}
         <PageHeader 
@@ -84,11 +147,15 @@ export default function SubmitAnswer() {
 
         {/* 3. Submit Button  */}
         <div className="mt-auto">
-          <GameButton variant="secondary" onClick={handleSubmitAnswer} disabled={!answerInput}>
-            {"Submit"}
+          <GameButton 
+            variant="secondary" 
+            onClick={handleSubmitAnswer} 
+            disabled={!answerInput.trim() || isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "Submit"}
           </GameButton>
         </div>
       </div>
-    </EmojiBackgroundLayout>
+    </EmojiBackgroundLayoutNoSSR>
   )
 }

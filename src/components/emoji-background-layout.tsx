@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, memo, useMemo } from "react"
 
 interface RandomEmoji {
   id: number
@@ -17,7 +17,7 @@ interface EmojiBackgroundLayoutProps {
   children: React.ReactNode
 }
 
-export function EmojiBackgroundLayout({ children }: EmojiBackgroundLayoutProps) {
+function EmojiBackgroundLayoutComponent({ children }: EmojiBackgroundLayoutProps) {
   const [emojis, setEmojis] = useState<RandomEmoji[]>([])
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function EmojiBackgroundLayout({ children }: EmojiBackgroundLayoutProps) 
 
   return (
     <div className="h-screen w-screen bg-white flex items-center justify-center p-4 overflow-hidden relative">
-      {/* Background emoji animation */}
+      {/* Background emoji animation - 固定レイアウト */}
       <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden">
         {emojis.map((item) => (
           <div
@@ -69,7 +69,7 @@ export function EmojiBackgroundLayout({ children }: EmojiBackgroundLayoutProps) 
         ))}
       </div>
 
-      {/* Content wrapper */}
+      {/* Content wrapper - 子コンポーネント再レンダリング時も背景は変わらない */}
       <div className="relative z-10 w-full max-w-xs flex flex-col items-center justify-center h-full">{children}</div>
 
       <style>{`
@@ -85,3 +85,6 @@ export function EmojiBackgroundLayout({ children }: EmojiBackgroundLayoutProps) 
     </div>
   )
 }
+
+// memo でラップして、children の参照が変わらない限り再レンダリングされない
+export const EmojiBackgroundLayout = memo(EmojiBackgroundLayoutComponent)

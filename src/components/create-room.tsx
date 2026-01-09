@@ -3,13 +3,16 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { GameButton } from "./game-button"
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import dynamic from 'next/dynamic'
 import { ParticipantList } from "./participant-list"
 import {PageHeader} from "./page-header"
 import { TextInput } from "./text-input"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
+
+// EmojiBackgroundLayout を動的インポート（コンポーネント定義の外で）
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
 // Format room code with hyphen (e.g., ABC-123)
 const formatRoomCode = (code: string) => {
@@ -49,23 +52,22 @@ export default function CreateRoom() {
   const handleStartGame = async () => {
     const currentParticipantsCount = participantsList.length;
 
-    //check a number of particpants
-    if (!roomCode || currentParticipantsCount < 3 || currentParticipantsCount > 7) {
-        if (currentParticipantsCount < 3 || currentParticipantsCount > 7) alert("参加人数は3人から7人まで必要です。");
+    // チェック：参加人数は 4人から 6人まで
+    // (ホスト 1人 + プレイヤー 3-5人)
+    if (currentParticipantsCount < 4 || currentParticipantsCount > 6) {
+        alert(`参加人数は 4人から 6人までです（現在: ${currentParticipantsCount}人）`);
         return;
     }
 
     try {
-      console.log("[v0] Starting game for room:", roomCode)
       await startGame();      
     } catch (error) {
-      console.error("Error starting game:", error)
       alert("Failed to start game")
     }
   }
 
   return (
-    <EmojiBackgroundLayout>
+    <EmojiBackgroundLayoutNoSSR>
       <div className="w-full max-w-xs flex flex-col h-full">
         {/* Header */}
         <PageHeader 
@@ -90,12 +92,16 @@ export default function CreateRoom() {
         {/* Start Button */}
         <div className="mt-auto">
           {roomState === GameState.WAITING && (
-              <GameButton variant="primary" onClick={handleStartGame} disabled={participantsList.length < 4 || participantsList.length > 6 || isLoading}>
-                  Start Game 
+              <GameButton 
+                variant="primary" 
+                onClick={handleStartGame} 
+                disabled={participantsList.length < 4 || participantsList.length > 6 || isLoading}
+              >
+                Start Game 
               </GameButton>
           )}
         </div>
       </div>
-    </EmojiBackgroundLayout>
+    </EmojiBackgroundLayoutNoSSR>
   )
 }

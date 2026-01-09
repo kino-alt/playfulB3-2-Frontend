@@ -1,12 +1,15 @@
+
 'use client'
 
 import {GameButton} from './game-button'
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import dynamic from 'next/dynamic'
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
+
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
 export default function TitleScreen() {
   const router = useRouter()
@@ -18,7 +21,28 @@ export default function TitleScreen() {
   
   // title-screenに到達したときにroom contextの状態を完全にリセット
   useEffect(() => {
-    console.log("[TitleScreen] Resetting room context for fresh start");
+    // WebSocket 接続を切断（サーバー側で参加者から削除される）
+    if (typeof window !== 'undefined') {
+      const ws = (window as any).gameWs;
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        try {
+          // 明示的な退出メッセージ送信
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'CLIENT_DISCONNECTED',
+              payload: { reason: 'returning_to_title' }
+            }));
+          }
+          
+          // WebSocket を切断（サーバーの onclose で参加者削除が実行される）
+          ws.close(1000, 'User returning to title');
+        } catch (error) {
+          // 切断エラーは無視
+        }
+      }
+    }
+    
+    // state をリセット（localStorage も一緒にクリア）
     resetRoom();
   }, [resetRoom]);
   
@@ -39,7 +63,7 @@ export default function TitleScreen() {
   }
 
   return (
-    <EmojiBackgroundLayout>
+    <EmojiBackgroundLayoutNoSSR>
         {/* Title Section */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">💬</div>
@@ -64,6 +88,6 @@ export default function TitleScreen() {
           </GameButton>
         </div>
 
-    </EmojiBackgroundLayout>
+    </EmojiBackgroundLayoutNoSSR>
   )
 }

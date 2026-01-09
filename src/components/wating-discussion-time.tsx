@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import { useState, useEffect, useCallback, useRef } from "react"
+import dynamic from 'next/dynamic'
 import { PageHeader } from "./page-header"
 import { TextInput } from "./text-input"
 import { TextDisplay } from "./text-display"
@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
+
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
 export function WaitingDiscussionTime() {
     const router = useRouter()
@@ -32,11 +34,45 @@ export function WaitingDiscussionTime() {
       globalError,
     } = useRoomData();
 
-    // Start a 5-second pre-discussion countdown when entering DISCUSSING
+    // Start a 5-second pre-discussion countdown only on first transition into DISCUSSING (no reload repeat)
+    const prevStateRef = useRef<GameState | null>(null);
+    const hasShownCountdownRef = useRef<boolean>(false);
+    const isInitialMountRef = useRef<boolean>(true);
+
     useEffect(() => {
-      if (roomState === GameState.DISCUSSING) {
+      const prev = prevStateRef.current;
+      const isInitialMount = isInitialMountRef.current;
+      
+      // 初回マウント後はフラグをfalseに
+      if (isInitialMount) {
+        isInitialMountRef.current = false;
+      }
+      
+      // 状態を更新（次回の比較用）
+      prevStateRef.current = roomState;
+
+      // すでにこのセッションで表示済みならスキップ
+      if (hasShownCountdownRef.current) {
+        setIsStarting(false);
+        return;
+      }
+
+      // 初回マウント時にすでにDISCUSSING状態ならリロードと判断してスキップ
+      if (isInitialMount && roomState === GameState.DISCUSSING) {
+        console.log('[WaitingDiscussion] Skipping countdown - reload detected');
+        setIsStarting(false);
+        return;
+      }
+
+      // 状態遷移を検出：前の状態がDISCUSSING以外で現在がDISCUSSING
+      const justEntered = prev !== null && prev !== GameState.DISCUSSING && roomState === GameState.DISCUSSING;
+      
+      if (justEntered) {
+        console.log('[WaitingDiscussion] Starting countdown - state transition detected');
         setIsStarting(true);
         setPreCountdown(5);
+        hasShownCountdownRef.current = true;
+        
         const id = setInterval(() => {
           setPreCountdown((prev) => {
             if (prev <= 1) {
@@ -48,9 +84,9 @@ export function WaitingDiscussionTime() {
           });
         }, 1000);
         return () => clearInterval(id);
-      } else {
-        setIsStarting(false);
       }
+
+      setIsStarting(false);
     }, [roomState]);
 
     // push next page
@@ -63,7 +99,7 @@ export function WaitingDiscussionTime() {
     }, [roomState, roomId, router])
 
     return (
-        <EmojiBackgroundLayout>
+        <EmojiBackgroundLayoutNoSSR>
           {/* Pre-start overlay: shows before discussion begins */}
           {roomState === GameState.DISCUSSING && isStarting && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
@@ -140,6 +176,6 @@ export function WaitingDiscussionTime() {
                 className="mt-0 flex-grow"
             />
           </div>
-        </EmojiBackgroundLayout>
+        </EmojiBackgroundLayoutNoSSR>
     )
 }

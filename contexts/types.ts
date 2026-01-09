@@ -36,7 +36,7 @@ export interface RoomState {
     roomState: GameState;
     AssignedEmoji: string | null;
     assignmentsMap: Record<string, string>;
-    timer: string | null;
+    timer: number | null;
     globalError: string | null;
 }
 
@@ -53,3 +53,20 @@ export interface RoomContextType extends RoomState {
   skipDiscussion: () => Promise<void>; // 議論をスキップ
   resetRoom: () => void; // タイトル画面に戻る時に状態をクリア
 }
+
+// 権限判定ユーティリティ
+export const Permissions = {
+  // ホストのみ
+  canStartGame: (isHost: boolean): boolean => isHost,
+  canFinishGame: (isHost: boolean, isLeader: boolean): boolean => isHost || isLeader,
+  
+  // リーダーのみ
+  canSetTopic: (isLeader: boolean): boolean => isLeader,
+  canAnswerQuestion: (isLeader: boolean): boolean => isLeader,
+  
+  // リーダー以外のプレイヤー
+  canSubmitAnswer: (isLeader: boolean, role: string): boolean => !isLeader && role === 'player',
+  
+  // ホストまたはリーダー
+  canSkipDiscussion: (isHost: boolean, isLeader: boolean): boolean => isHost || isLeader,
+} as const;

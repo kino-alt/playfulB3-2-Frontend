@@ -5,27 +5,47 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
 
     //ws message handler
     const handleWebSocketMessage = useCallback((eventData: any) => {
-        const { type, payload } = eventData;
-        // Central dispatcher for WS messages from backend
-        console.log("[WS RECEIVED]", type, payload); 
+        const { type, payload } = eventData; 
 
         switch (type) {
             //state update handler
             case 'STATE_UPDATE':
                 const { nextState, data: payloadData } = payload;
-                console.log("[STATE_UPDATE] nextState:", nextState, "payloadData:", payloadData);
+                console.log('[STATE_UPDATE] Received:', { 
+                    nextState, 
+                    hasData: !!payloadData,
+                    assignments: payloadData?.assignments?.length || 0
+                });
                 
                 setState(prev => {
                     let newState = { ...prev, roomState: nextState as GameState, globalError: null };
+                    
+                    // ANSWERING状態への遷移をログ
+                    if (nextState === GameState.ANSWERING) {
+                        console.log('[STATE_UPDATE] Transitioning to ANSWERING state:', {
+                            myUserId: prev.myUserId,
+                            isLeader: prev.isLeader,
+                            participantsList: prev.participantsList.map(p => ({
+                                user_id: p.user_id,
+                                user_name: p.user_name,
+                                is_Leader: p.is_Leader
+                            }))
+                        });
+                    }
 
+                    // 仕様書のルールに従い、ステータスごとに必要なデータのみを処理
+                    // データが undefined の場合は前の値を保持
                     if (payloadData) {
-                        // 🔴 全フィールドをマッピング（undefined の場合は前の値を保持）
+                        // すべてのステータスで共通のデータ処理
                         if (payloadData.topic !== undefined) newState.topic = payloadData.topic;
                         if (payloadData.answer !== undefined) newState.answer = payloadData.answer;
                         if (payloadData.theme !== undefined) newState.theme = payloadData.theme;
                         if (payloadData.hint !== undefined) newState.hint = payloadData.hint;
                         
-                        // 🔴 ダミー絵文字関連データを受信
+                        // ダミー絵文字関連データを受信（displayedEmojis/originalEmojis/dummyIndex/dummyEmoji）
+                        if (payloadData.displayedEmojis !== undefined) {
+                            newState.displayedEmojis = payloadData.displayedEmojis;
+                        }
                         if (payloadData.originalEmojis !== undefined) {
                             newState.originalEmojis = payloadData.originalEmojis;
                         }
@@ -36,84 +56,52 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                             newState.dummyEmoji = payloadData.dummyEmoji;
                         }
                         
-                        // サーバー側が selected_emojis (snake_case) で送ってくるのでマッピング
-                        // 🔴 ホストかどうかで表示する絵文字を切り替え
+                        // ホストかどうかで表示する絵文字を切り替え
                         const isHost = prev.participantsList.some(
                             p => p.user_id === prev.myUserId && p.role === 'host'
                         ) || (prev.myUserId === "aa");
                         
-                        if (payloadData.displayedEmojis !== undefined) {
-                            // サーバーから displayedEmojis が直接送られる場合
-                            newState.displayedEmojis = payloadData.displayedEmojis;
-                            console.log("[STATE_UPDATE] Received displayedEmojis:", payloadData.displayedEmojis);
-                        }
-                        
-                        if (payloadData.selected_emojis !== undefined) {
-                            // プレイヤーにはダミーが混じった配列を表示
-                            // displayedEmojis が既に設定されている場合はそちらを優先
-                            if (!newState.displayedEmojis || newState.displayedEmojis.length === 0) {
-                                newState.displayedEmojis = payloadData.selected_emojis;
-                            }
-                            // selectedEmojisは互換性のため残す（プレイヤー用）
-                            newState.selectedEmojis = payloadData.selected_emojis;
-                        }
-                        
-                        // 🔴 ホストの場合は元の絵文字も selectedEmojis に設定
+                        // ホストの場合は元の絵文字を selectedEmojis に設定
                         if (isHost && payloadData.originalEmojis !== undefined) {
                             newState.selectedEmojis = payloadData.originalEmojis;
-                            console.log("[STATE_UPDATE] Host view: showing original emojis");
                         }
-                        
-                        console.log("[STATE_UPDATE] After mapping - topic:", newState.topic, "selectedEmojis:", newState.selectedEmojis, "displayedEmojis:", newState.displayedEmojis);
+                        // プレイヤーの場合は表示用絵文字を selectedEmojis に設定
+                        else if (!isHost && payloadData.displayedEmojis !== undefined) {
+                            newState.selectedEmojis = payloadData.displayedEmojis;
+                        }
                     }
                     
-                    // 🔴 payloadData がない、または topic/selectedEmojis が null/空の場合は前の値を保持
-                    if (!payloadData || (payloadData.topic === null && prev.topic)) {
-                        newState.topic = prev.topic;
-                        console.log("[STATE_UPDATE] Preserving previous topic:", prev.topic);
-                    }
-                    if (!payloadData || (payloadData.selected_emojis?.length === 0 && prev.selectedEmojis.length > 0)) {
-                        newState.selectedEmojis = prev.selectedEmojis;
-                        console.log("[STATE_UPDATE] Preserving previous selectedEmojis:", prev.selectedEmojis);
-                    }
-                    // 🔴 displayedEmojis も保持
-                    if (!payloadData || (payloadData.displayedEmojis?.length === 0 && prev.displayedEmojis.length > 0)) {
-                        newState.displayedEmojis = prev.displayedEmojis;
-                        console.log("[STATE_UPDATE] Preserving previous displayedEmojis:", prev.displayedEmojis);
-                    }
-                    // 🔴 originalEmojis も保持
-                    if (!payloadData || (payloadData.originalEmojis?.length === 0 && prev.originalEmojis.length > 0)) {
-                        newState.originalEmojis = prev.originalEmojis;
-                        console.log("[STATE_UPDATE] Preserving previous originalEmojis:", prev.originalEmojis);
-                    }
-                    // 🔴 dummyIndex も保持
-                    if ((!payloadData || payloadData.dummyIndex === undefined || payloadData.dummyIndex === null) && prev.dummyIndex !== null) {
-                        newState.dummyIndex = prev.dummyIndex;
-                        console.log("[STATE_UPDATE] Preserving previous dummyIndex:", prev.dummyIndex);
-                    }
-                    // 🔴 dummyEmoji も保持
-                    if ((!payloadData || !payloadData.dummyEmoji) && prev.dummyEmoji) {
-                        newState.dummyEmoji = prev.dummyEmoji;
-                        console.log("[STATE_UPDATE] Preserving previous dummyEmoji:", prev.dummyEmoji);
-                    }
-
-                    // discussing state data update
+                    // discussing state data update (assignments processing)
                     if (nextState === GameState.DISCUSSING && payloadData) {
                         const assignments = payloadData.assignments || []; 
+                        console.log('[STATE_UPDATE] 🎯 DISCUSSING phase - assignments from payload:', assignments.length, 'myUserId:', prev.myUserId);
 
-                        //convert assignments array to map for easy lookup
-                        const assignmentsMap: Record<string, string> = assignments.reduce((acc: Record<string, string>, assignment: any) => {
-                            acc[assignment.user_id] = assignment.emoji;
-                            return acc;
-                        }, {});
+                        if (assignments.length > 0) {
+                            //convert assignments array to map for easy lookup
+                            const assignmentsMap: Record<string, string> = assignments.reduce((acc: Record<string, string>, assignment: any) => {
+                                acc[assignment.user_id] = assignment.emoji;
+                                return acc;
+                            }, {});
 
-                        // get assigned emoji for current user
-                        const AssignedEmoji = assignmentsMap[prev.myUserId || ''] || null;
-                        return { 
-                            ...newState,
-                            assignmentsMap,
-                            AssignedEmoji: AssignedEmoji
-                        };
+                            // get assigned emoji for current user
+                            const AssignedEmoji = assignmentsMap[prev.myUserId || ''] || prev.AssignedEmoji || null;
+                            console.log('[STATE_UPDATE] 🎯 AssignedEmoji update:', {
+                                myUserId: prev.myUserId,
+                                fromPayload: assignmentsMap[prev.myUserId || ''],
+                                fromPrevious: prev.AssignedEmoji,
+                                final: AssignedEmoji,
+                                allAssignments: assignmentsMap,
+                                assignmentKeys: Object.keys(assignmentsMap)
+                            });
+                            
+                            newState.assignmentsMap = assignmentsMap;
+                            newState.AssignedEmoji = AssignedEmoji;
+                        } else {
+                            console.log('[STATE_UPDATE] ⚠️ No assignments in payload, keeping previous values:', {
+                                previousAssignedEmoji: prev.AssignedEmoji,
+                                previousAssignmentsMap: Object.keys(prev.assignmentsMap || {})
+                            });
+                        }
                     }
 
                     return newState;
@@ -123,21 +111,58 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
             //participant list update handler
             case 'PARTICIPANT_UPDATE':
             case 'PARTICIPANTS_UPDATE':
-            // Participant list delta/full update
-            // ログノイズ削減 - 全てのPARTICIPANT_UPDATEログをコメントアウト
-            // console.log("[WS RECEIVED] PARTICIPANT_UPDATE", payload);
             
             setState(prev => {
                 // MSWは payload.participants に配列を入れているので、そこを参照する
-                const newParticipants = (payload.participants || []) as Participant[];
-                
+                const rawParticipants = (payload.participants || []) as any[];
+
+                console.log('[PARTICIPANT_UPDATE] Received:', {
+                    count: rawParticipants.length,
+                    currentMyUserId: prev.myUserId,
+                    currentUserName: prev.userName,
+                    receivedParticipants: rawParticipants.map(p => ({
+                        user_id: p.user_id,
+                        user_name: p.user_name,
+                        role: p.role,
+                        is_Leader: p.is_Leader || p.is_leader
+                    }))
+                });
+
+                // 空配列が来た場合は上書きせず保持（リロード直後などで人数0になるのを防ぐ）
+                if (!rawParticipants.length) {
+                    console.log('[PARTICIPANT_UPDATE] Empty payload - keeping previous participants');
+                    return prev;
+                }
+
+                // 以前の参加者情報を user_id で引けるようにしておく（role/is_Leaderを補完するため）
+                const prevById: Record<string, Participant> = prev.participantsList.reduce((acc, cur) => {
+                    acc[cur.user_id] = cur;
+                    return acc;
+                }, {} as Record<string, Participant>);
+
+                // is_Leader / is_leader 両対応に正規化しつつ、roleが無ければ前回の値を引き継ぐ
+                const newParticipants: Participant[] = rawParticipants.map(p => {
+                    const prevP = prevById[p.user_id];
+                    const normalizedRole = p.role ?? prevP?.role ?? 'player';
+                    return {
+                        ...p,
+                        role: normalizedRole,
+                        // is_Leader はサーバーからの値（または前回値）をそのまま使用。host と leader は別概念。
+                        is_Leader: p.is_Leader
+                            ?? p.is_leader
+                            ?? prevP?.is_Leader
+                            ?? false,
+                    };
+                });
+
                 // 変更がない場合は更新をスキップ（パフォーマンス最適化）
                 const hasChanged = 
                     newParticipants.length !== prev.participantsList.length ||
                     newParticipants.some((p, i) => 
                         !prev.participantsList[i] || 
                         p.user_id !== prev.participantsList[i].user_id ||
-                        p.is_Leader !== prev.participantsList[i].is_Leader
+                        p.is_Leader !== prev.participantsList[i].is_Leader ||
+                        p.role !== prev.participantsList[i].role
                     );
                 
                 if (!hasChanged) {
@@ -148,13 +173,66 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                 if (newParticipants.length !== prev.participantsList.length) {
                     console.log("[WS RECEIVED] Participants changed:", newParticipants.length, "people");
                 }
+                
+                // is_Leaderフラグの変更をログ
+                const leaderChanges = newParticipants.filter((p, i) => {
+                    const oldP = prev.participantsList[i];
+                    return oldP && p.user_id === oldP.user_id && p.is_Leader !== oldP.is_Leader;
+                });
+                if (leaderChanges.length > 0) {
+                    console.log("[PARTICIPANT_UPDATE] Leader flags changed:", leaderChanges.map(p => ({
+                        user_id: p.user_id,
+                        user_name: p.user_name,
+                        is_Leader: p.is_Leader
+                    })));
+                }
 
+                // myUserIdは絶対に変更しない（localStorageから復元した値を維持）
+                // MSWのCLIENT_CONNECTEDハンドラーがサーバー側の参加者リストを同期する
                 const me = newParticipants.find(p => p.user_id === prev.myUserId);
+                
+                if (!me) {
+                    console.warn('[PARTICIPANT_UPDATE] ⚠️ myUserId not found in participants:', {
+                        myUserId: prev.myUserId,
+                        userName: prev.userName,
+                        participantIds: newParticipants.map(p => p.user_id),
+                        participantNames: newParticipants.map(p => p.user_name)
+                    });
+                    console.log('[PARTICIPANT_UPDATE] This is expected right after reload - CLIENT_CONNECTED will sync');
+                } else {
+                    console.log('[PARTICIPANT_UPDATE] ✓ Found myself:', {
+                        myUserId: prev.myUserId,
+                        myName: me.user_name,
+                        myRole: me.role,
+                        myIsLeader: me.is_Leader
+                    });
+                }
+                
+                // isLeaderの更新: WebSocketから取得できたら使用、できなければ既存の値を保持
+                const updatedIsLeader = me 
+                    ? (String(me.is_Leader) === "true" || me.is_Leader === true)
+                    : prev.isLeader; // WebSocketデータが無い場合は既存値を保持（localStorage復元値など）
+                
+                if (me && updatedIsLeader !== prev.isLeader) {
+                    console.log('[PARTICIPANT_UPDATE] isLeader changed:', {
+                        previous: prev.isLeader,
+                        fromWS: me.is_Leader,
+                        updated: updatedIsLeader
+                    });
+                }
+                
+                console.log('[PARTICIPANT_UPDATE] Final state:', {
+                    myUserId: prev.myUserId,
+                    isLeader: updatedIsLeader,
+                    AssignedEmoji: prev.AssignedEmoji,
+                    participantsCount: newParticipants.length
+                });
                 
                 return { 
                 ...prev, 
                 participantsList: newParticipants,
-                isLeader: me ? (String(me.is_Leader) === "true" || me.is_Leader === true) : prev.isLeader,
+                // myUserIdは絶対に変更しない
+                isLeader: updatedIsLeader,
                 globalError: null
                 };
             });
@@ -164,7 +242,8 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
             case 'TIMER_TICK':
                 setState(prev => ({ 
                     ...prev, 
-                    timer: payload.time, 
+                    // Backend spec sends "time" (MM:SS); fallback to remaining seconds if provided
+                    timer: payload.time ?? payload.remaining ?? prev.timer, 
                     globalError: null
                 }));
                 break;

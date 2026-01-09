@@ -160,7 +160,6 @@ export const handlers = [
   http.post('/api/user', async ({ request }) => {
     console.log("[MSW] ====== /api/user called ======");
     const body = await request.json() as any;
-    const newUserId = "bb-" + Math.random().toString(36).substring(2, 7);
 
     // 🔴 クロスブラウザ同期対応：localStorage から参加者を読み込む
     let participants = loadParticipantsFromStorage();
@@ -176,16 +175,41 @@ export const handlers = [
     
     console.log("[MSW] Before join, current participants:", participants.map((p: any) => p.user_name).join(', '));
 
-    // 全員を一旦リーダー解除して、join した人をリーダーに設定
-    const updatedList = [
-      ...participants.map((p: any) => ({ ...p, is_Leader: false })),
-      {
-        user_id: newUserId,
-        user_name: body.user_name || "ゲスト",
-        role: "player" as const,
-        is_Leader: true,
-      }
-    ];
+    // 同じuser_nameの参加者が既に存在するか確認（リロード時の再接続）
+    const existingUser = participants.find((p: any) => 
+      p.user_name && body.user_name && 
+      p.user_name.trim().toLowerCase() === body.user_name.trim().toLowerCase()
+    );
+
+    let userId: string;
+    let updatedList: any[];
+
+    if (existingUser) {
+      // 既存ユーザーの再接続 - 同じuser_idを返す
+      console.log("[MSW] Existing user reconnecting:", existingUser.user_name, existingUser.user_id);
+      userId = existingUser.user_id;
+      
+      // 全員を一旦リーダー解除して、再接続した人をリーダーに設定
+      updatedList = participants.map((p: any) => ({
+        ...p,
+        is_Leader: p.user_id === userId ? true : false
+      }));
+    } else {
+      // 新規ユーザー
+      userId = "bb-" + Math.random().toString(36).substring(2, 7);
+      console.log("[MSW] New user joining:", body.user_name, userId);
+      
+      // 全員を一旦リーダー解除して、join した人をリーダーに設定
+      updatedList = [
+        ...participants.map((p: any) => ({ ...p, is_Leader: false })),
+        {
+          user_id: userId,
+          user_name: body.user_name || "ゲスト",
+          role: "player" as const,
+          is_Leader: true,
+        }
+      ];
+    }
     
     setParticipants(updatedList, "/api/user");
     console.log("[MSW] After join, participants:", currentParticipants.map(p => p.user_name).join(', '), "| Total:", currentParticipants.length);
@@ -193,8 +217,8 @@ export const handlers = [
 
     return HttpResponse.json({
       room_id: "abc",
-      user_id: newUserId,
-      is_leader: "true",
+      user_id: userId,
+      is_leader: existingUser ? existingUser.is_Leader : "true",
     }, { status: 200 });
   }),
 
@@ -371,8 +395,71 @@ export const handlers = [
       }
 
       if (data.type === 'CLIENT_CONNECTED') {
-        console.log("[MSW] CLIENT_CONNECTED - Re-broadcasting to sync all clients");
-        // 接続があったら全クライアントに最新の参加者リストをブロードキャスト
+        console.log("[MSW] CLIENT_CONNECTED - Payload:", data.payload);
+        const { user_id, user_name, role, is_Leader } = data.payload || {};
+        
+        if (!user_id) {
+          console.error("[MSW] CLIENT_CONNECTED - No user_id provided");
+          broadcastParticipants();
+          return;
+        }
+        
+        // localStorageから最新の参加者リストを読み込む
+        let participants = loadParticipantsFromStorage();
+        if (participants.length === 0) {
+          participants = [
+            { user_id: "aa", user_name: "ホスト(あなた)", role: "host" as const, is_Leader: false },
+            { user_id: "dummy1", user_name: "たいよう", role: "player" as const, is_Leader: false },
+            { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
+          ];
+        }
+        
+        // 戦略1: user_idで完全一致を探す
+        let existingIndex = participants.findIndex(p => p.user_id === user_id);
+        
+        // 戦略2: user_idで見つからない場合、user_nameで探す（異なるセッションでのリロード対策）
+        if (existingIndex < 0 && user_name) {
+          const normalizedName = user_name.trim().toLowerCase();
+          existingIndex = participants.findIndex(p => 
+            p.user_name && p.user_name.trim().toLowerCase() === normalizedName
+          );
+          
+          if (existingIndex >= 0) {
+            console.log("[MSW] CLIENT_CONNECTED - Found by user_name, syncing user_id:", {
+              serverSideId: participants[existingIndex].user_id,
+              clientSideId: user_id,
+              userName: user_name,
+              action: 'Updating server-side user_id to match client'
+            });
+            // サーバー側のuser_idをクライアント側に合わせる（クライアントのlocalStorageが正）
+            participants[existingIndex].user_id = user_id;
+          }
+        }
+        
+        // 戦略3: 両方で見つからない場合は新規参加者として追加
+        if (existingIndex < 0) {
+          console.log("[MSW] CLIENT_CONNECTED - New participant, adding:", { user_id, user_name, role });
+          participants.push({
+            user_id,
+            user_name: user_name || 'Unknown',
+            role: role || 'player',
+            is_Leader: is_Leader || false,
+          });
+          existingIndex = participants.length - 1;
+        } else {
+          // 既存参加者の場合、情報を更新（role/is_Leaderは維持）
+          console.log("[MSW] CLIENT_CONNECTED - Existing user reconnected:", { user_id, user_name });
+          participants[existingIndex] = {
+            ...participants[existingIndex],
+            user_id: user_id, // クライアント側のIDに同期
+            user_name: user_name || participants[existingIndex].user_name,
+            // role と is_Leader は既存の値を維持
+          };
+        }
+        
+        setParticipants(participants, "CLIENT_CONNECTED");
+        
+        // 全クライアントに最新の参加者リストをブロードキャスト
         broadcastParticipants();
       }
 

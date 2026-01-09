@@ -1,6 +1,6 @@
 "use client"
 
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import dynamic from 'next/dynamic'
 import { PageHeader } from "./page-header"
 import { WaitingAnimation } from "./waiting-animation"
 import { useEffect } from "react"
@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
+
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
 export default function WaitingAnswer() {
   const router = useRouter()
@@ -25,7 +27,7 @@ export default function WaitingAnswer() {
     }, [roomState, roomId, router])
 
   return (
-    <EmojiBackgroundLayout>
+    <EmojiBackgroundLayoutNoSSR>
       <div className="w-full max-w-xs flex flex-col h-full">
         <PageHeader title="Waiting for Leader" subtitle="Please wait..." />
 
@@ -35,6 +37,6 @@ export default function WaitingAnswer() {
         </div>
 
       </div>
-    </EmojiBackgroundLayout>
+    </EmojiBackgroundLayoutNoSSR>
   )
 }

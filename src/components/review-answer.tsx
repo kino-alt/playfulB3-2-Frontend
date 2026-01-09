@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useCallback } from "react"
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import dynamic from 'next/dynamic'
 import { PageHeader } from "./page-header"
 import { TextInput } from "./text-input"
 import { TextDisplay } from "./text-display" 
@@ -9,6 +9,8 @@ import { GameButton } from "./game-button"
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
 import { EmojiComparisonDisplay } from "./emoji-comparison-display"
+
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
 export function ReviewAnswer() {
     const { 
@@ -60,7 +62,7 @@ export function ReviewAnswer() {
     }, [isHost, finishRoom])
 
     return (
-        <EmojiBackgroundLayout>
+        <EmojiBackgroundLayoutNoSSR>
             <div className="w-full max-w-xs flex flex-col h-full relative">
                 
                 <PageHeader title="Result" subtitle="Reveal the Truth" marginBottom="mb-1"/>
@@ -90,6 +92,6 @@ export function ReviewAnswer() {
                 </div> 
                 
             </div>
-        </EmojiBackgroundLayout>
+        </EmojiBackgroundLayoutNoSSR>
     )
 }

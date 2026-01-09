@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { GameButton } from "./game-button"
-import { EmojiBackgroundLayout } from "./emoji-background-layout"
+import dynamic from 'next/dynamic'
 import { PageHeader } from "./page-header"
 import { TextInput } from "./text-input"
 import { TextDisplay} from "./text-display"
@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation"
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+
+const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
 export function CreateTopic() {
   const [topicInput, setTopicInput] = useState("")
@@ -21,6 +23,7 @@ export function CreateTopic() {
   const [step, setStep] = useState<"topic" | "emoji">("topic") // 段階管理
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter()
   
   const { 
@@ -34,6 +37,55 @@ export function CreateTopic() {
   } = useRoomData();
   
   const isEmojiComplete = localSelectedEmojis.length === maxEmojis;
+
+  // リロード時に localStorage からデータを復元（roomId ベース）
+  useEffect(() => {
+    if (typeof window === 'undefined' || !roomId) return;
+    
+    try {
+      const draftKey = `createTopic_draft_${roomId}`;
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setTopicInput(parsed.topicInput || "");
+        setLocalSelectedEmojis(parsed.localSelectedEmojis || []);
+        setStep(parsed.step || "topic");
+        console.log(`[CreateTopic] Restored draft from ${draftKey}`);
+      }
+    } catch (error) {
+      console.error("[CreateTopic] Failed to restore draft data:", error);
+    }
+  }, [roomId]);
+
+  // 入力データを localStorage に保存（デバウンス付き、roomId ベース）
+  useEffect(() => {
+    if (typeof window === 'undefined' || !roomId) return;
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      try {
+        const draftKey = `createTopic_draft_${roomId}`;
+        const draftData = {
+          topicInput,
+          localSelectedEmojis,
+          step,
+          timestamp: Date.now(),
+        };
+        localStorage.setItem(draftKey, JSON.stringify(draftData));
+      } catch (error) {
+        console.error("[CreateTopic] Failed to save draft data:", error);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [roomId, topicInput, localSelectedEmojis, step]);
 
   // 入力が止まったらステップを移行するタイマー
   useEffect(() => {
@@ -70,9 +122,15 @@ export function CreateTopic() {
   }
 
   const handleSubmit = async () => {
-    if (!topicInput || !isEmojiComplete) return;
+    if (!topicInput || !isEmojiComplete || !roomId) return;
     try {
-      await submitTopic(topicInput, localSelectedEmojis); 
+      await submitTopic(topicInput, localSelectedEmojis);
+      // 送信成功時にドラフトデータをクリア（roomId ベース）
+      if (typeof window !== 'undefined') {
+        const draftKey = `createTopic_draft_${roomId}`;
+        localStorage.removeItem(draftKey);
+        console.log(`[CreateTopic] Cleared draft from ${draftKey}`);
+      }
     } catch (error) {
       console.error(error);
       alert("送信に失敗しました。");
@@ -80,7 +138,7 @@ export function CreateTopic() {
   }
 
   return (
-    <EmojiBackgroundLayout> 
+    <EmojiBackgroundLayoutNoSSR> 
       <div className="w-full max-w-xs flex flex-col h-full relative">
         <PageHeader title="Set the Topic" subtitle="Prepare your quiz" marginBottom="mb-2" />
         
@@ -123,11 +181,11 @@ export function CreateTopic() {
         </div>
 
         {/* --- Area 2: Emoji Selection --- */}
-        <div className={`relative transition-all duration-500 ${step === "topic" ? 'opacity-30 grayscale pointer-events-none scale-95' : 'opacity-100 scale-100'}`}>
+        <div className={`relative transition-all duration-500 ${step === "topic" ? 'opacity-50 grayscale' : 'opacity-100'}`}>
           
           <div className="flex items-end justify-center gap-3 mb-5 ml-13">
             <div className="relative w-24 h-24">
-              <div onClick={() => !isEmojiComplete && setShowPicker(!showPicker)} className="cursor-pointer">
+              <div onClick={() => step !== "topic" && !isEmojiComplete && setShowPicker(!showPicker)} className={`cursor-pointer ${step === "topic" ? "opacity-50" : ""}`}>
                 <TextInput
                   value={emojiInput}
                   onChange={() => {}} 
@@ -204,6 +262,6 @@ export function CreateTopic() {
           animation: bounce-slow 2s infinite ease-in-out;
         }
       `}</style>
-    </EmojiBackgroundLayout>
+    </EmojiBackgroundLayoutNoSSR>
   )
 }
