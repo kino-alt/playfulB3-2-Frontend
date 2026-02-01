@@ -105,8 +105,10 @@ export function DiscussionTime() {
   }, [])
 
   const handleSkip = useCallback(async () => {
+    console.log('[DiscussionTime] Skip button clicked');
     try {
       await skipDiscussion()
+      console.log('[DiscussionTime] Skip discussion completed successfully');
     } catch (error) {
       console.error("[DiscussionTime] Failed to skip discussion:", error)
     }
@@ -303,13 +305,15 @@ interface EmojiDisplayContainerProps {
 }
 
 function EmojiDisplayContainer({ emoji }: EmojiDisplayContainerProps) {
+  console.log('[EmojiDisplayContainer] Rendering with emoji:', emoji);
+
   return (
     <div className="relative w-full max-w-[180px] h-[150px] bg-white border-[3px] border-gray-300 rounded-[2.5rem] shadow-[0_8px_0_0_rgba(245,158,11,0.7)] flex items-center justify-center mx-auto">
       {/* 吹き出しのしっぽ */}
       <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-white border-b-[3px] border-r-[3px] border-gray-300 rotate-45 rounded-sm" />
-      
+
       {/* 絵文字 */}
-      <p className="text-[80px] select-none z-10 drop-shadow-sm leading-none" role="img" aria-label="Assigned emoji">
+      <p className="text-[80px] select-none z-10 drop-shadow-sm leading-none" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }} role="img" aria-label="Assigned emoji">
         {emoji || ""}
       </p>
     </div>

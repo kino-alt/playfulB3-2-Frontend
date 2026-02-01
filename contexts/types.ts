@@ -13,7 +13,7 @@ export interface Participant {
     user_id: string;
     user_name: string;
     role: 'host' | 'player';
-    is_Leader: boolean;
+    is_leader: boolean;
 }
 
 //room state interface(ws)

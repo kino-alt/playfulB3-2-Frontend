@@ -38,8 +38,13 @@ async function fetchWithTimeout(
     if (!response.ok) {
       // レスポンスボディを読み取ってエラーメッセージを取得
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorBody: any = null;
+
       try {
-        const errorBody = await response.json();
+        const clonedResponse = response.clone();
+        errorBody = await clonedResponse.json();
+        console.error(`[API] Error response body from ${url}:`, JSON.stringify(errorBody, null, 2));
+
         if (errorBody.message || errorBody.error) {
           errorMessage += ` - ${errorBody.message || errorBody.error}`;
         }
@@ -48,14 +53,15 @@ async function fetchWithTimeout(
         // JSONパースに失敗した場合はテキストとして読み取り
         try {
           const errorText = await response.text();
+          console.error(`[API] Error response text from ${url}:`, errorText);
           if (errorText) {
             errorMessage += ` - ${errorText}`;
           }
         } catch (textError) {
-          // テキストも読めない場合は無視
+          console.error(`[API] Could not read error response from ${url}`);
         }
       }
-      
+
       const error = new AppError(
         ErrorCode.NETWORK_ERROR,
         errorMessage,
@@ -129,19 +135,54 @@ export const api = {
    * ------------------------------- */
   submitTopic: async (
     roomId: string,
+    userId: string,
     topic: string,
-    originalEmojis: string[]
+    originalEmojis: string[],
+    displayedEmojis?: string[],
+    dummyIndex?: number,
+    dummyEmoji?: string
   ) => {
     try {
+      const requestBody: any = {
+        user_id: userId,
+        topic,
+        emojis: originalEmojis
+      };
+
+      // Add dummy emoji data if provided
+      if (displayedEmojis && dummyIndex !== undefined && dummyEmoji) {
+        requestBody.displayed_emojis = displayedEmojis;
+        requestBody.original_emojis = originalEmojis;
+        requestBody.dummy_index = dummyIndex;
+        requestBody.dummy_emoji = dummyEmoji;
+        console.log('[API] ✓ submitTopic: Including dummy emoji data');
+      } else {
+        console.warn('[API] ⚠️ submitTopic: Missing dummy emoji data!', {
+          hasDisplayedEmojis: !!displayedEmojis,
+          hasDummyIndex: dummyIndex !== undefined,
+          hasDummyEmoji: !!dummyEmoji
+        });
+      }
+
+      console.log('[API] submitTopic request:', {
+        url: `${API_BASE_URL}/api/rooms/${roomId}/topic`,
+        method: 'POST',
+        roomId,
+        userId,
+        topic,
+        requestBody: JSON.stringify(requestBody, null, 2)
+      });
+
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/rooms/${roomId}/topic`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Backend spec: only topic + emojis
-        body: JSON.stringify({ topic, emojis: originalEmojis }),
+        body: JSON.stringify(requestBody),
       })
 
       Logger.info(TAG, 'Topic submitted', { roomId })
-      return response.json()
+      const result = await response.json();
+      console.log('[API] submitTopic response:', result);
+      return result;
     } catch (error) {
       Logger.error(TAG, 'Failed to submit topic', error as Error)
       throw error
@@ -226,14 +267,25 @@ export const api = {
    * ------------------------------- */
   skipDiscussion: async (roomId: string, userId: string) => {
     try {
+      const requestBody = { user_id: userId };
+      console.log('[API] skipDiscussion request:', {
+        url: `${API_BASE_URL}/api/rooms/${roomId}/skip-discussion`,
+        method: 'POST',
+        roomId: roomId,
+        userId: userId,
+        body: requestBody
+      });
+
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/rooms/${roomId}/skip-discussion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
+        body: JSON.stringify(requestBody),
       })
 
       Logger.info(TAG, 'Discussion skipped', { roomId })
-      return response.json()
+      const result = await response.json();
+      console.log('[API] skipDiscussion response:', result);
+      return result;
     } catch (error) {
       Logger.error(TAG, 'Failed to skip discussion', error as Error)
       throw error
