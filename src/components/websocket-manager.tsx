@@ -26,8 +26,11 @@ export function WebSocketManager() {
   // メイン接続エフェクト：roomId / myUserId / userName が揃ったときだけ接続。
   // roomState 変化では再接続しない（切断→参加者0の連鎖を防ぐ）。
   useEffect(() => {
+    console.log('[WebSocketManager] useEffect triggered:', { roomId, myUserId, userName, isHost, isLeader });
+
     // roomId と myUserId がない場合は接続しない
     if (!roomId || !myUserId) {
+      console.log('[WebSocketManager] Missing roomId or myUserId, not connecting');
       // 既存の接続をクローズ
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         wsRef.current.close(1000, 'No roomId or myUserId')
@@ -41,6 +44,8 @@ export function WebSocketManager() {
       }
       return
     }
+
+    console.log('[WebSocketManager] roomId and myUserId present, proceeding with connection');
 
     // 既に接続中または接続済みの場合はスキップ
     if (isConnectingRef.current || (wsRef.current && wsRef.current.readyState === WebSocket.OPEN)) {
@@ -74,7 +79,7 @@ export function WebSocketManager() {
             user_id: myUserId,
             user_name: userName || 'Player',
             role: isHost ? 'host' : 'player',
-            is_Leader: !!isLeader,
+            is_leader: !!isLeader,
           };
           console.log('[WebSocketManager] Sending CLIENT_CONNECTED:', payload);
           ws.send(JSON.stringify({

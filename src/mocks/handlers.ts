@@ -415,12 +415,12 @@ export const handlers = [
         }
         
         // 戦略1: user_idで完全一致を探す
-        let existingIndex = participants.findIndex(p => p.user_id === user_id);
-        
+        let existingIndex = participants.findIndex((p: any) => p.user_id === user_id);
+
         // 戦略2: user_idで見つからない場合、user_nameで探す（異なるセッションでのリロード対策）
         if (existingIndex < 0 && user_name) {
           const normalizedName = user_name.trim().toLowerCase();
-          existingIndex = participants.findIndex(p => 
+          existingIndex = participants.findIndex((p: any) =>
             p.user_name && p.user_name.trim().toLowerCase() === normalizedName
           );
           

@@ -299,17 +299,18 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
   // actions FIX:API設計に合わせる/useCallback関数使用-----------------------------
   // 1.1 Roomの作成 (POST /api/rooms)
   const createRoom = useCallback(async () => {
-    // API: POST /api/rooms -> create lobby and store ids/theme/hint
-    const data = await api.createRoom();
-    Logger.info(TAG, 'Room created', { roomId: data.room_id, roomCode: data.room_code, theme: data.theme, hint: data.hint });
     try {
+      // API: POST /api/rooms -> create lobby and store ids/theme/hint
+      const data = await api.createRoom();
+      Logger.info(TAG, 'Room created', { roomId: data.room_id, roomCode: data.room_code, theme: data.theme, hint: data.hint });
+
       createdRoomRef.current = true;
       const newState = {
         roomId: data.room_id,
         roomCode: data.room_code,
         myUserId: data.user_id,
         userName: 'ホスト(あなた)', // MSWのuser_nameと一致させる
-        isLeader: true, // ホストはリーダーでもある（仕様に沿う）
+        isLeader: false, // ホストはLeaderではない。最初にJoinしたPlayerがLeaderになる
         theme: data.theme,
         hint: data.hint,
         roomState: GameState.WAITING,
@@ -323,6 +324,8 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
         ...prev,
         ...newState,
       }));
+
+      Logger.info(TAG, 'State updated', { myUserId: data.user_id, roomId: data.room_id });
       // localStorage への保存は useEffect に任せる
     } catch (err) {
       Logger.error(TAG, 'Failed to create room', err as Error);
@@ -395,37 +398,58 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
         dummyEmoji: dummyResult.dummyEmoji,
       }));
 
+      console.log('[submitTopic] Current room state before API call:', state.roomState);
       const result = await api.submitTopic(
-        state.roomId,
+        state.roomId!,
+        state.myUserId!,
         topic,
-        dummyResult.originalEmojis
+        dummyResult.originalEmojis,
+        dummyResult.displayedEmojis,
+        dummyResult.dummyIndex,
+        dummyResult.dummyEmoji
       );
       if ((result as any)?.error) {
         Logger.error(TAG, 'Submit topic failed', new Error((result as any).error));
         setState(prev => ({ ...prev, globalError: (result as any).error }));
         return;
       }
+      console.log('[submitTopic] ✓ Topic submitted successfully, waiting for STATE_UPDATE via WebSocket...');
 
-      const ws = (window as any).gameWs; 
+      const ws = (window as any).gameWs;
+      console.log('[submitTopic] WebSocket check:', {
+        wsExists: !!ws,
+        readyState: ws?.readyState,
+        isOpen: ws?.readyState === WebSocket.OPEN
+      });
+
       if (ws && ws.readyState === WebSocket.OPEN) {
         // Notify backend via WS to fan out topic to players
         // 🔴 プレイヤーにはダミーが混じった配列を送信
-        ws.send(JSON.stringify({ 
+        const payload = {
+          displayedEmojis: dummyResult.displayedEmojis,  // ダミー含めた絵文字配列（4〜6個）
+          originalEmojis: dummyResult.originalEmojis,  // ホスト確認用
+          dummyIndex: dummyResult.dummyIndex,
+          dummyEmoji: dummyResult.dummyEmoji,
+        };
+        console.log('[submitTopic] 📤 Sending SUBMIT_TOPIC via WebSocket:', payload);
+        ws.send(JSON.stringify({
           type: 'SUBMIT_TOPIC',
-          payload: { 
-            displayedEmojis: dummyResult.displayedEmojis,  // ダミー含めた絵文字配列（4〜6個）
-            originalEmojis: dummyResult.originalEmojis,  // ホスト確認用
-            dummyIndex: dummyResult.dummyIndex,
-            dummyEmoji: dummyResult.dummyEmoji,
-          } 
+          payload
         }));
+        console.log('[submitTopic] ✓ SUBMIT_TOPIC sent successfully, waiting for STATE_UPDATE to "discussing"...');
         Logger.debug(TAG, 'WS SUBMIT_TOPIC sent with dummy injection');
+      } else {
+        console.error('[submitTopic] ❌ WebSocket not available or not open!', {
+          wsExists: !!ws,
+          readyState: ws?.readyState
+        });
+        setState(prev => ({ ...prev, globalError: 'WebSocket接続がありません' }));
       }
     } catch (error) {
       Logger.error(TAG, 'Failed to submit topic', error as Error);
       setState(prev => ({ ...prev, globalError: (error as any)?.message || "Failed to submit topic" }));
     }
-  }, [state.roomId, amIHost]);
+  }, [state.roomId, state.myUserId, amIHost]);
 
   // 1.3 回答の提出 (POST /api/rooms/${room_id}/answer)
   const submitAnswer = useCallback(async (answer: string) => {
@@ -493,24 +517,25 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       Logger.warn(TAG, 'Cannot start game: missing roomId or myUserId');
       return;
     }
-    
+
     if (!amIHost) {
       Logger.warn(TAG, 'Cannot start game: user is not host');
       alert('ホストのみがゲームを開始できます');
       return;
     }
-    
+
     try {
-      console.log('[RoomContext] Starting game for room:', state.roomId, 'userId:', state.myUserId, 'amIHost:', amIHost);
+      console.log('[RoomContext] Starting game for room:', state.roomId, 'userId:', state.myUserId, 'amIHost:', amIHost, 'currentState:', state.roomState);
       const result = await api.startGame(state.roomId, state.myUserId);
-      
+
       if ((result as any)?.error) {
         Logger.error(TAG, 'Start game failed', new Error((result as any).error));
         setState(prev => ({ ...prev, globalError: (result as any).error }));
         alert('ゲーム開始に失敗しました: ' + (result as any).error);
         return;
       }
-      
+
+      console.log('[RoomContext] ✓ Game started successfully, response:', result);
       Logger.info(TAG, 'Game started successfully');
       // WebSocket から STATE_UPDATE が来るのを待つ
       // ここでは特に何もしない（WebSocket ハンドラーが state を更新）
@@ -520,7 +545,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
       setState(prev => ({ ...prev, globalError: errorMsg }));
       alert(errorMsg);
     }
-  }, [state.roomId, state.myUserId, amIHost]);
+  }, [state.roomId, state.myUserId, amIHost, state.roomState]);
 
   //finish room
   const finishRoom = useCallback(async () => {
@@ -594,13 +619,31 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
 
   // 議論をスキップして回答フェーズへ遷移
   const skipDiscussion = useCallback(async () => {
+    console.log('[RoomContext] skipDiscussion called:', {
+      roomId: state.roomId,
+      myUserId: state.myUserId,
+      roomState: state.roomState,
+      amIHost,
+      isLeader: state.isLeader,
+      participantsList: state.participantsList.map(p => ({
+        user_id: p.user_id,
+        role: p.role,
+        is_leader: p.is_leader
+      }))
+    });
+
     // 仕様書: ホストまたはリーダーのみがスキップ可能
     if (!state.roomId || !state.myUserId || (!amIHost && !state.isLeader)) {
-      Logger.warn(TAG, 'Skip discussion: insufficient permissions or missing IDs');
+      Logger.warn(TAG, 'Skip discussion: insufficient permissions or missing IDs', {
+        roomId: state.roomId,
+        myUserId: state.myUserId,
+        amIHost,
+        isLeader: state.isLeader
+      });
       return;
     }
     try {
-      Logger.info(TAG, 'Skipping discussion');
+      Logger.info(TAG, 'Skipping discussion', { roomId: state.roomId, userId: state.myUserId });
       await api.skipDiscussion(state.roomId, state.myUserId);
       Logger.info(TAG, 'Discussion skipped, moving to answering phase');
     } catch (error) {

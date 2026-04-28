@@ -11,13 +11,17 @@ interface DisplaySelectedEmojisProps {
 }
 
 export function DisplaySelectedEmojis({ selectedEmojis, handleRemoveEmoji, maxEmojis ,roomState}: DisplaySelectedEmojisProps) {
-  const displayLength = maxEmojis; 
+  const displayLength = maxEmojis;
   const isEditable = roomState === GameState.SETTING_TOPIC;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    console.log('[DisplaySelectedEmojis] selectedEmojis:', selectedEmojis, 'mounted:', mounted);
+  }, [selectedEmojis, mounted]);
 
   return (
     <div className="bg-white/10 rounded-2xl p-1 flex-grow">
@@ -35,7 +39,7 @@ export function DisplaySelectedEmojis({ selectedEmojis, handleRemoveEmoji, maxEm
             <div key={index} className="relative aspect-square">
               {mounted && selectedEmojis[index] ? (
                 <div className="relative w-full h-full">
-                  <div className="w-full h-full bg-white border-2 border-amber-400/60 rounded-lg flex items-center justify-center text-2xl">
+                  <div className="w-full h-full bg-white border-2 border-amber-400/60 rounded-lg flex items-center justify-center text-2xl" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {selectedEmojis[index]}
                   </div>
                   {isEditable && (

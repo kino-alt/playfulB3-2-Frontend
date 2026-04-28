@@ -28,7 +28,7 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                             participantsList: prev.participantsList.map(p => ({
                                 user_id: p.user_id,
                                 user_name: p.user_name,
-                                is_Leader: p.is_Leader
+                                is_leader: p.is_leader
                             }))
                         });
                     }
@@ -73,13 +73,16 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                     
                     // discussing state data update (assignments processing)
                     if (nextState === GameState.DISCUSSING && payloadData) {
-                        const assignments = payloadData.assignments || []; 
-                        console.log('[STATE_UPDATE] 🎯 DISCUSSING phase - assignments from payload:', assignments.length, 'myUserId:', prev.myUserId);
+                        const assignments = payloadData.assignments || [];
+                        console.log('[STATE_UPDATE] 🎯 DISCUSSING phase - assignments from payload:', assignments.length, 'myUserId:', prev.myUserId, 'raw assignments:', assignments);
 
                         if (assignments.length > 0) {
                             //convert assignments array to map for easy lookup
+                            // assignments can be JSON strings, so parse them first
                             const assignmentsMap: Record<string, string> = assignments.reduce((acc: Record<string, string>, assignment: any) => {
-                                acc[assignment.user_id] = assignment.emoji;
+                                // If assignment is a string, parse it
+                                const parsed = typeof assignment === 'string' ? JSON.parse(assignment) : assignment;
+                                acc[parsed.user_id] = parsed.emoji;
                                 return acc;
                             }, {});
 
@@ -124,7 +127,7 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                         user_id: p.user_id,
                         user_name: p.user_name,
                         role: p.role,
-                        is_Leader: p.is_Leader || p.is_leader
+                        is_leader: p.is_leader || p.is_leader
                     }))
                 });
 
@@ -134,23 +137,23 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                     return prev;
                 }
 
-                // 以前の参加者情報を user_id で引けるようにしておく（role/is_Leaderを補完するため）
+                // 以前の参加者情報を user_id で引けるようにしておく（role/is_leaderを補完するため）
                 const prevById: Record<string, Participant> = prev.participantsList.reduce((acc, cur) => {
                     acc[cur.user_id] = cur;
                     return acc;
                 }, {} as Record<string, Participant>);
 
-                // is_Leader / is_leader 両対応に正規化しつつ、roleが無ければ前回の値を引き継ぐ
+                // is_leader / is_leader 両対応に正規化しつつ、roleが無ければ前回の値を引き継ぐ
                 const newParticipants: Participant[] = rawParticipants.map(p => {
                     const prevP = prevById[p.user_id];
                     const normalizedRole = p.role ?? prevP?.role ?? 'player';
                     return {
                         ...p,
                         role: normalizedRole,
-                        // is_Leader はサーバーからの値（または前回値）をそのまま使用。host と leader は別概念。
-                        is_Leader: p.is_Leader
+                        // is_leader はサーバーからの値（または前回値）をそのまま使用。host と leader は別概念。
+                        is_leader: p.is_leader
                             ?? p.is_leader
-                            ?? prevP?.is_Leader
+                            ?? prevP?.is_leader
                             ?? false,
                     };
                 });
@@ -161,7 +164,7 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                     newParticipants.some((p, i) => 
                         !prev.participantsList[i] || 
                         p.user_id !== prev.participantsList[i].user_id ||
-                        p.is_Leader !== prev.participantsList[i].is_Leader ||
+                        p.is_leader !== prev.participantsList[i].is_leader ||
                         p.role !== prev.participantsList[i].role
                     );
                 
@@ -174,16 +177,16 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                     console.log("[WS RECEIVED] Participants changed:", newParticipants.length, "people");
                 }
                 
-                // is_Leaderフラグの変更をログ
+                // is_leaderフラグの変更をログ
                 const leaderChanges = newParticipants.filter((p, i) => {
                     const oldP = prev.participantsList[i];
-                    return oldP && p.user_id === oldP.user_id && p.is_Leader !== oldP.is_Leader;
+                    return oldP && p.user_id === oldP.user_id && p.is_leader !== oldP.is_leader;
                 });
                 if (leaderChanges.length > 0) {
                     console.log("[PARTICIPANT_UPDATE] Leader flags changed:", leaderChanges.map(p => ({
                         user_id: p.user_id,
                         user_name: p.user_name,
-                        is_Leader: p.is_Leader
+                        is_leader: p.is_leader
                     })));
                 }
 
@@ -204,19 +207,19 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                         myUserId: prev.myUserId,
                         myName: me.user_name,
                         myRole: me.role,
-                        myIsLeader: me.is_Leader
+                        myIsLeader: me.is_leader
                     });
                 }
                 
                 // isLeaderの更新: WebSocketから取得できたら使用、できなければ既存の値を保持
                 const updatedIsLeader = me 
-                    ? (String(me.is_Leader) === "true" || me.is_Leader === true)
+                    ? (String(me.is_leader) === "true" || me.is_leader === true)
                     : prev.isLeader; // WebSocketデータが無い場合は既存値を保持（localStorage復元値など）
                 
                 if (me && updatedIsLeader !== prev.isLeader) {
                     console.log('[PARTICIPANT_UPDATE] isLeader changed:', {
                         previous: prev.isLeader,
-                        fromWS: me.is_Leader,
+                        fromWS: me.is_leader,
                         updated: updatedIsLeader
                     });
                 }

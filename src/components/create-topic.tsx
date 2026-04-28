@@ -112,8 +112,10 @@ export function CreateTopic() {
 
   const handleAddEmoji = () => {
     if (emojiInput && localSelectedEmojis.length < maxEmojis ) {
-      setLocalSelectedEmojis([...localSelectedEmojis, emojiInput]);
-      setEmojiInput(""); 
+      const newEmojis = [...localSelectedEmojis, emojiInput];
+      console.log('[CreateTopic] Adding emoji:', emojiInput, 'New array:', newEmojis);
+      setLocalSelectedEmojis(newEmojis);
+      setEmojiInput("");
     }
   }
 

@@ -8,11 +8,15 @@ interface ParticipantListProps {
 
 function ParticipantListComponent({ participants }: ParticipantListProps) {
   console.log("ParticipantList Received:", participants);
-  // ホストを除外する
+  console.log("ParticipantList participants count:", participants.length);
+
+  // Hostを除外してプレイヤーのみ表示
   const players = participants.filter(p => p.role !== 'host');
+  console.log("ParticipantList players (excluding host):", players.length, players);
 
   // リーダー（回答者）を探す
-  const leader = players.find(p => String(p.is_Leader) === "true" || p.is_Leader === true);
+  const leader = players.find(p => String(p.is_leader) === "true" || p.is_leader === true);
+  console.log("ParticipantList leader found:", leader);
   const otherPlayers = players.filter(p => p.user_id !== leader?.user_id);
 
   // 表示用リストの作成
@@ -40,7 +44,7 @@ function ParticipantListComponent({ participants }: ParticipantListProps) {
           >
             <span>{p.user_name}</span>
             <div className="flex space-x-2">
-              {String(p.is_Leader) === "true" && (
+              {(String(p.is_leader) === "true" || p.is_leader === true) && (
                 <span className="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
                   LEADER
                 </span>
