@@ -9,6 +9,26 @@ const WS_BASE_URL = typeof window !== 'undefined'
 const gameWs = ws.link(`${WS_BASE_URL}/api/rooms/:room_id/ws`);
 let timerInterval: NodeJS.Timeout | null = null;
 
+const generateRoomCode = () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    for (const byte of bytes) {
+      code += alphabet[byte % alphabet.length];
+    }
+    return code;
+  }
+
+  for (let index = 0; index < 6; index += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+
+  return code;
+};
+
 // グローバル参加者リスト（初期値は空）
 let currentParticipants: Array<{user_id: string, user_name: string, role: string, is_Leader: boolean}> = [];
 
@@ -125,6 +145,7 @@ export const handlers = [
     // 🔴 新しいルーム作成時は localStorage をクリアして初期化
     console.log("[MSW] 🗑️ Clearing old room data");
     localStorage.removeItem('playful-mock-participants');
+    localStorage.removeItem('playful-room-state');
     
     // 🔴 ゲームデータもリセット
     gameData = {
@@ -141,8 +162,6 @@ export const handlers = [
     
     const initial = [
       { user_id: "aa", user_name: "ホスト(あなた)", role: "host", is_Leader: false },
-      { user_id: "dummy1", user_name: "たいよう", role: "player", is_Leader: false },
-      { user_id: "dummy2", user_name: "しょう", role: "player", is_Leader: false },
     ];
     
     setParticipants(initial, "/api/rooms");
@@ -151,7 +170,7 @@ export const handlers = [
     return HttpResponse.json({
       "room_id": "abc",
       "user_id": "aa",
-      "room_code": "AAAAAA",
+      "room_code": generateRoomCode(),
       "theme": "人物",
       "hint": "スティーブジョブズ",
     }, { status: 201 });
@@ -168,8 +187,6 @@ export const handlers = [
     if (participants.length === 0) {
       participants = [
         { user_id: "aa", user_name: "ホスト(あなた)", role: "host" as const, is_Leader: false },
-        { user_id: "dummy1", user_name: "たいよう", role: "player" as const, is_Leader: false },
-        { user_id: "dummy2", user_name: "しょう", role: "player" as const, is_Leader: false },
       ];
     }
     

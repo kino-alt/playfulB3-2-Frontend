@@ -37,6 +37,8 @@ export function CreateTopic() {
   } = useRoomData();
   
   const isEmojiComplete = localSelectedEmojis.length === maxEmojis;
+  const pickerWidth = "min(92vw, 420px)";
+  const pickerHeight = "min(66vh, 520px)";
 
   // リロード時に localStorage からデータを復元（roomId ベース）
   useEffect(() => {
@@ -207,8 +209,21 @@ export function CreateTopic() {
               {showPicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
-                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[70%] z-50 shadow-2xl">
-                    <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.LIGHT} width={280} height={300} skinTonesDisabled />
+                 <div className="absolute left-1/2 top-full z-50 mt-3 -translate-x-1/2 shadow-2xl rounded-3xl overflow-hidden border-2 border-amber-200 bg-white">
+                    <EmojiPicker
+                      onEmojiClick={onEmojiClick}
+                      theme={Theme.LIGHT}
+                      width={pickerWidth}
+                      height={pickerHeight}
+                      skinTonesDisabled
+                      searchPlaceholder="絵文字を検索"
+                      searchPlaceHolder="絵文字を検索"
+                      previewConfig={{
+                        showPreview: false,
+                        defaultCaption: "絵文字を選択",
+                        defaultEmoji: "🙂",
+                      }}
+                    />
                   </div>
                 </>
               )}

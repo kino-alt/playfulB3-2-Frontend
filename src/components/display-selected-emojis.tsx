@@ -39,7 +39,7 @@ export function DisplaySelectedEmojis({ selectedEmojis, handleRemoveEmoji, maxEm
             <div key={index} className="relative aspect-square">
               {mounted && selectedEmojis[index] ? (
                 <div className="relative w-full h-full">
-                  <div className="w-full h-full bg-white border-2 border-amber-400/60 rounded-lg flex items-center justify-center text-2xl" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                  <div className="w-full h-full bg-gray-100 border-2 border-amber-400/60 rounded-lg flex items-center justify-center text-2xl" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {selectedEmojis[index]}
                   </div>
                   {isEditable && (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const shouldUseMsw = (process.env.NEXT_PUBLIC_USE_MSW ?? "true") !== "false";
+const shouldUseMsw = (process.env.NEXT_PUBLIC_USE_MSW ?? "false") !== "false";
 
 export function MSWProvider({ children }: { children: React.ReactNode }) {
   const [mswReady, setMswReady] = useState(false);
