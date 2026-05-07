@@ -68,7 +68,7 @@ export default function TitleScreen() {
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">💬</div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-amber-500 bg-clip-text text-transparent mb-1">
-            GAME TITLE
+            絵言葉解き
           </h1>
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
             Emoji Discussion Game
