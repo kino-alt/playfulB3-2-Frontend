@@ -10,7 +10,7 @@
 import { useEffect, useRef } from 'react'
 import { useRoomData } from '@/contexts/room-context'
 
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080'
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8080'
 const RECONNECT_DELAY = 3000 // 3秒
 const MAX_RECONNECT_ATTEMPTS = 5
 const HEARTBEAT_INTERVAL = 30000 // 30秒
