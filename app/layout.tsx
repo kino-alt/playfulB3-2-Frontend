@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { MSWProvider } from '@/src/components/MSWProvider'
 import { RoomProvider } from '@/contexts/room-context'
 import { NetworkStatusIndicator } from '@/hooks/useNetworkMonitor'
-import { WebSocketManager } from '@/src/components/websocket-manager'
+import { WebSocketManager } from '@/components/websocket-manager'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -29,13 +28,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="font-sans antialiased">
-        <MSWProvider>
-          <RoomProvider>
-            <NetworkStatusIndicator />
-            <WebSocketManager />
-            {children}
-          </RoomProvider>
-        </MSWProvider>
+        <RoomProvider>
+          <NetworkStatusIndicator />
+          <WebSocketManager />
+          {children}
+        </RoomProvider>
       </body>
     </html>
   )

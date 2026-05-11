@@ -1,6 +1,5 @@
-import WaitingAnswer from "@/src/components/waiting-answer"
-import { RoomProvider } from '@/contexts/room-context';
+import WaitingAnswer from "./waiting-answer"
 
-export default async function WaitingAnswerPage(){
+export default function WaitingAnswerPage() {
   return <WaitingAnswer />
 }

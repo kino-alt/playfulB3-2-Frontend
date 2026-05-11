@@ -309,7 +309,7 @@ export const RoomProvider = ({ children, initialRoomId }: RoomProviderProps) => 
         roomId: data.room_id,
         roomCode: data.room_code,
         myUserId: data.user_id,
-        userName: 'ホスト(あなた)', // MSWのuser_nameと一致させる
+        userName: 'ホスト(あなた)',
         isLeader: false, // ホストはLeaderではない。最初にJoinしたPlayerがLeaderになる
         theme: data.theme,
         hint: data.hint,

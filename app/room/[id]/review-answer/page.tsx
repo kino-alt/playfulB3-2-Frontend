@@ -1,13 +1,5 @@
-import {ReviewAnswer} from "@/src/components/review-answer"
-import { RoomProvider } from '@/contexts/room-context';
+import { ReviewAnswer } from "./review-answer"
 
-export default function ReviewAnswerPage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  // const { id } = params;
-  return (
-    <ReviewAnswer />
-  )
+export default function ReviewAnswerPage() {
+  return <ReviewAnswer />
 }

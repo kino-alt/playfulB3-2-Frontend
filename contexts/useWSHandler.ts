@@ -116,7 +116,6 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
             case 'PARTICIPANTS_UPDATE':
             
             setState(prev => {
-                // MSWは payload.participants に配列を入れているので、そこを参照する
                 const rawParticipants = (payload.participants || []) as any[];
 
                 console.log('[PARTICIPANT_UPDATE] Received:', {
@@ -191,7 +190,6 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                 }
 
                 // myUserIdは絶対に変更しない（localStorageから復元した値を維持）
-                // MSWのCLIENT_CONNECTEDハンドラーがサーバー側の参加者リストを同期する
                 const me = newParticipants.find(p => p.user_id === prev.myUserId);
                 
                 if (!me) {
@@ -201,7 +199,7 @@ export const useWsHandler = (setState: React.Dispatch<React.SetStateAction<RoomS
                         participantIds: newParticipants.map(p => p.user_id),
                         participantNames: newParticipants.map(p => p.user_name)
                     });
-                    console.log('[PARTICIPANT_UPDATE] This is expected right after reload - CLIENT_CONNECTED will sync');
+                    console.log('[PARTICIPANT_UPDATE] This is expected right after reload - participants will sync on reconnect');
                 } else {
                     console.log('[PARTICIPANT_UPDATE] ✓ Found myself:', {
                         myUserId: prev.myUserId,

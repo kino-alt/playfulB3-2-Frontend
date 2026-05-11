@@ -1,12 +1,5 @@
-import {WaitingDiscussionTime} from "@/src/components/wating-discussion-time"
+import { WaitingDiscussionTime } from "./waiting-discussion-time"
 
-export default function WaitingDiscussionTimePage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  // const { id } = params;
-  return (
-    <WaitingDiscussionTime />
-  )
+export default function WaitingDiscussionTimePage() {
+  return <WaitingDiscussionTime />
 }

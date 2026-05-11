@@ -1,12 +1,5 @@
-import {DiscussionTime} from "@/src/components/discussion-time"
+import { DiscussionTime } from "./discussion-time"
 
-export default function DiscussionTimePage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  // const { id } = params;
-  return (
-    <DiscussionTime />
-  )
+export default function DiscussionTimePage() {
+  return <DiscussionTime />
 }

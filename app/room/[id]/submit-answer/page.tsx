@@ -1,12 +1,5 @@
-import SubmitAnswer from "@/src/components/submit-answer"
+import SubmitAnswer from "./submit-answer"
 
-export default function SubmitAnswerPage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  // const { id } = params;
-  return (
-    <SubmitAnswer />
-  )
+export default function SubmitAnswerPage() {
+  return <SubmitAnswer />
 }
