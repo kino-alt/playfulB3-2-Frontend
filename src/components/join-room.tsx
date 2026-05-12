@@ -161,7 +161,7 @@ export default function JoinRoom() {
 
         {/* Join Button */}
         <div className="mt-auto">
-          <GameButton variant="secondary" disabled={!roomCode || !userName || isJoining} type="submit">
+          <GameButton variant="primary" disabled={!roomCode || !userName || isJoining} type="submit">
             {isJoining ? "Joining..." : "Join Room"}
           </GameButton>
         </div>

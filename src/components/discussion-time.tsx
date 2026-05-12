@@ -332,7 +332,7 @@ function FooterSection({ isLeader, isStarting, onSkip }: FooterSectionProps) {
       {isLeader ? (
         <GameButton 
           onClick={onSkip} 
-          variant="secondary" 
+          variant="primary" 
           disabled={isStarting}
           aria-label={isStarting ? "Starting discussion" : "Skip discussion"}
         >

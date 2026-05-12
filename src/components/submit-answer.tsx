@@ -148,7 +148,7 @@ export default function SubmitAnswer() {
         {/* 3. Submit Button  */}
         <div className="mt-auto">
           <GameButton 
-            variant="secondary" 
+            variant="primary" 
             onClick={handleSubmitAnswer} 
             disabled={!answerInput.trim() || isSubmitting}
           >

@@ -8,6 +8,7 @@ import { useEffect } from "react"
 //FIX: Add
 import { useRoomData } from '@/contexts/room-context';
 import { GameState } from "@/contexts/types";
+import Image from 'next/image';
 
 const EmojiBackgroundLayoutNoSSR = dynamic(() => import('./emoji-background-layout').then(m => m.EmojiBackgroundLayout), { ssr: false })
 
@@ -65,25 +66,26 @@ export default function TitleScreen() {
   return (
     <EmojiBackgroundLayoutNoSSR>
         {/* Title Section */}
-        <div className="text-center mb-8">
-          <div className="text-4xl mb-2">💬</div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-amber-500 bg-clip-text text-transparent mb-1">
-            絵言葉解き
-          </h1>
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
-            Emoji Discussion Game
-          </p>
+        <div className="w-full flex justify-center mb-6">
+          <Image
+            src="/images/絵文字解きロゴ.png"
+            alt="絵言葉解き"
+            width={480}
+            height={120}
+            className="object-contain"
+            priority
+          />
         </div>
 
         {/* Button Section */}
         <div className="w-full space-y-3">
           {/* Create Room Button */}
-          <GameButton variant="primary" onClick={handleCreateRoom} icon="+" subtitle="Start a new game">
+          <GameButton variant="primary" onClick={handleCreateRoom} icon="+" subtitle="" height="p-10">
             Create Room
           </GameButton>
 
           {/* Join Room Button */}
-          <GameButton variant="secondary" onClick={handleJoinRoom} icon="→" subtitle="Join existing game">
+          <GameButton variant="secondary" onClick={handleJoinRoom} icon="→" subtitle="" height="p-10">
             Join Room
           </GameButton>
         </div>

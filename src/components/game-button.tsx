@@ -12,34 +12,37 @@ interface GameButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 export function GameButton({ variant, children, subtitle, icon, height="p-4",className, ...props}: GameButtonProps) {
-  {/* Base and Variant Classes */}
-  const baseClass =
-    'w-full rounded-xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:-translate-y-0.5 border-2'
+  const baseClass = "w-full inline-flex flex-col items-center justify-center transition-all duration-200 rounded-xl border px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed";
 
-  {/* Variant Specific Classes */}
   const variantClass = {
-    primary: "bg-emerald-50 border-emerald-500 hover:bg-gradient-to-r hover:from-emerald-500 hover:to-emerald-600",
-    secondary: "bg-amber-50 border-amber-500 hover:bg-gradient-to-r hover:from-amber-500 hover:to-amber-600",
-  }
-
-  {/* Text Color Classes */}
-  const textColorClass = {
-    primary: "text-emerald-600 group-hover:text-white",
-    secondary: "text-amber-600 group-hover:text-white",
-  }
+    primary: "bg-slate-950 border-slate-900 text-white hover:bg-slate-800 active:scale-[0.97] shadow-lg shadow-slate-200",
+    
+    // 【参加者側】「参加・反応する」役割。
+    // 柔らかい白に近いグレー（slate-50）に、少し太めの枠線。
+    // ホストのボタンと並んでも主張しすぎず、かつ「押しやすさ」を感じさせる親切なデザイン。
+    secondary: "bg-slate-50 border-slate-300 text-slate-900 hover:bg-white hover:border-slate-400 active:scale-[0.97] shadow-sm"
+  };
 
   return (
-    <button 
-      {...props} // 🔴 ここで type="submit" や disabled が適用される
-      className={`${height} ${baseClass} ${variantClass[variant]} group ${props.disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+    <button
+      {...props}
+      // `${height}` を以前と同じ位置に入れ、`className` による幅指定（w-fullなど）が効くようにしています
+      className={`${baseClass} ${variantClass[variant]} ${height || ""} ${className}`}
     >
-      <div
-        className={`flex flex-row items-center justify-center gap-2 font-bold uppercase text-sm tracking-wide ${textColorClass[variant]}`}
-      >
-        {icon && <span>{icon}</span>}
-        <span>{children}</span>
+      {/* 上段：アイコンとメインテキスト */}
+      <div className="flex items-center gap-2">
+        {icon && <span className="text-base">{icon}</span>}
+        <span className="text-sm font-semibold tracking-normal">
+          {children}
+        </span>
       </div>
-      {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+
+      {/* 下段：サブタイトル（配置は変えず、フォントサイズと不透明度で馴染ませる） */}
+      {subtitle && (
+        <span className="text-[11px] leading-tight opacity-70 mt-0.5 font-medium">
+          {subtitle}
+        </span>
+      )}
     </button>
   )
 }

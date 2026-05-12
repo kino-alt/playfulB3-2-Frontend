@@ -86,7 +86,7 @@ export function ReviewAnswer() {
                 />
 
                 <div className="mt-auto ">
-                    <GameButton variant={isHost ? "primary" : "secondary"} onClick={handleSubmit}>
+                    <GameButton variant="primary" onClick={handleSubmit}>
                         {isHost ? "Finish Game" : "Exit to Lobby"}
                     </GameButton>
                 </div> 
